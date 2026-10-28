@@ -1,15 +1,12 @@
 import json
+import os
 import shutil
 from datetime import datetime, timezone
-from pathlib import Path
 
 from src import llm
 from src.config import ROOT
 
 DATA_DIR = ROOT / "data"
-ARCHIVE_DIR = DATA_DIR / "archive"
-LATEST_PATH = DATA_DIR / "latest.json"
-INDEX_PATH = ARCHIVE_DIR / "index.json"
 
 
 def recent_links(days=3, data_dir=DATA_DIR, today=None):
@@ -28,15 +25,22 @@ def recent_links(days=3, data_dir=DATA_DIR, today=None):
     return links
 
 
-def write_issue(curated, config, weather_data=None):
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
+def _write_json(path, value):
+    temporary = path.with_suffix(".tmp")
+    temporary.write_text(json.dumps(value, indent=2))
+    os.replace(temporary, path)
 
-    today = datetime.now().strftime("%Y-%m-%d")
 
+def write_issue(curated, config, weather_data=None, data_dir=DATA_DIR, now=None):
+    now = now or datetime.now()
+    archive_dir = data_dir / "archive"
+    latest_path = data_dir / "latest.json"
+    archive_dir.mkdir(parents=True, exist_ok=True)
+
+    today = now.strftime("%Y-%m-%d")
     issue = {
         "date": today,
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": now.astimezone(timezone.utc).isoformat(),
         "city": config.get("city"),
         "country": config.get("country"),
         "model": llm.model_name(config),
@@ -46,15 +50,12 @@ def write_issue(curated, config, weather_data=None):
         "articles": curated.get("articles", []),
     }
 
-    if LATEST_PATH.exists():
-        old = json.loads(LATEST_PATH.read_text())
-        old_date = old.get("date")
+    if latest_path.exists():
+        old_date = json.loads(latest_path.read_text()).get("date")
         if old_date and old_date != today:
-            shutil.copy(LATEST_PATH, ARCHIVE_DIR / f"{old_date}.json")
+            shutil.copy(latest_path, archive_dir / f"{old_date}.json")
 
-    LATEST_PATH.write_text(json.dumps(issue, indent=2))
-
-    dates = sorted({p.stem for p in ARCHIVE_DIR.glob("*.json") if p.stem != "index"})
-    INDEX_PATH.write_text(json.dumps(dates, indent=2))
-
+    _write_json(latest_path, issue)
+    dates = sorted(p.stem for p in archive_dir.glob("*.json") if p.stem != "index")
+    _write_json(archive_dir / "index.json", dates)
     return issue
