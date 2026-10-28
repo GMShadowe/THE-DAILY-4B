@@ -1,0 +1,31 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+    ports:
+      - "4173:4173"
+    environment:
+      DAILY4B_ALLOWED_HOSTS: ${DAILY4B_ALLOWED_HOSTS:-}
+    volumes:
+      - ./data:/app/data:ro
+      - ./config.yaml:/app/config.yaml:ro
+    restart: unless-stopped
+
+  press:
+    build:
+      context: .
+      dockerfile: docker/press.Dockerfile
+    command: ["python", "main.py", "--daily", "${PRESS_TIME:-06:00}"]
+    environment:
+      TZ: ${TZ:-UTC}
+      DAILY4B_OLLAMA_HOST: ${DAILY4B_OLLAMA_HOST:-http://host.docker.internal:11434}
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - ./data:/app/data
+      - ./config.yaml:/app/config.yaml:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
