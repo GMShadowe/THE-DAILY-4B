@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>Build Taste</title>
+    <link rel="stylesheet" href="/canvas.css?token=__TOKEN__" />
+    <script src="/canvas.js?token=__TOKEN__" defer></script>
+  </head>
+  <body>
+    <!-- The board: an infinite canvas of the things you like, saved into your project as you go. -->
+    <main id="stage" class="stage" role="group" aria-roledescription="canvas" tabindex="0" aria-label="Your board: an infinite canvas of the things you like. Drag across the ground to pick several things; scroll, hold Space and drag, or use the arrow keys to move around. Plus and minus zoom, 0 shows everything. Backspace takes a picked thing off.">
+      <div class="ground" aria-hidden="true"><canvas id="ground"></canvas><div id="dots" class="dots" hidden></div></div>
+      <div id="world" class="world"><div id="zoomer" class="zoomer"></div></div>
+
+      <div id="empty" class="empty" hidden>
+        <p class="empty-title">What feels right to you?</p>
+        <p class="empty-text">Drop a screenshot, paste a site, or write a note about what you like. It all saves into <span id="empty-project">your project</span>, and your agent reads it when you finish.</p>
+      </div>
+
+      <div class="corner corner-left" data-ui>
+        <div class="chip">
+          <span class="chip-mark" aria-hidden="true">
+            <svg viewBox="0 0 16 16" shape-rendering="crispEdges"><rect x="1" y="0" width="2" height="4"/><rect x="13" y="0" width="2" height="4"/><rect x="8" y="0" width="2" height="7"/><rect x="6" y="5" width="2" height="2"/><rect x="2" y="8" width="2" height="2"/><rect x="12" y="8" width="2" height="2"/><rect x="4" y="10" width="8" height="2"/><rect x="7" y="12" width="4" height="2"/><rect x="8" y="14" width="2" height="2"/></svg>
+          </span>
+          <label class="name"><span id="name-size" aria-hidden="true">My taste</span><input id="board-name" value="My taste" maxlength="60" spellcheck="false" autocomplete="off" size="1" aria-label="The board's name" /></label>
+          <span class="chip-rule" aria-hidden="true"></span>
+          <span class="chip-count"><b id="count">0</b> <span id="count-word">things</span></span>
+          <span class="chip-rule" aria-hidden="true"></span>
+          <span id="save-state" class="chip-saved" role="status">Opening…</span>
+        </div>
+      </div>
+
+      <div class="corner corner-right" data-ui>
+        <div class="bar" role="toolbar" aria-label="View">
+          <button id="zoom-out" class="tool" type="button" aria-label="Zoom out"><svg viewBox="0 0 18 18"><path class="ln" d="M4.25 9h9.5"/></svg></button>
+          <button id="zoom-reset" class="tool tool-percent" type="button" aria-label="Zoom to 100%">100%</button>
+          <button id="zoom-in" class="tool" type="button" aria-label="Zoom in"><svg viewBox="0 0 18 18"><path class="ln" d="M9 4.25v9.5M4.25 9h9.5"/></svg></button>
+          <span class="bar-rule" aria-hidden="true"></span>
+          <button id="fit" class="tool" type="button" aria-label="Show everything" title="Show everything"><svg viewBox="0 0 18 18"><path class="ln" d="M3.2 6.4V5.2a2 2 0 012-2h1.2M11.6 3.2h1.2a2 2 0 012 2v1.2M14.8 11.6v1.2a2 2 0 01-2 2h-1.2M6.4 14.8H5.2a2 2 0 01-2-2v-1.2"/><circle cx="9" cy="9" r="2.3"/></svg></button>
+        </div>
+        <button id="finish-button" class="finish" type="button" data-short="Finish" disabled>Finish and build taste</button>
+      </div>
+
+      <div class="foot" data-ui>
+        <div class="line-slot" aria-live="polite"><p id="line" class="line" hidden></p></div>
+        <form id="field" class="field">
+          <input id="image-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/avif,image/svg+xml" multiple hidden />
+          <button id="image-button" class="field-pictures" type="button" aria-label="Add pictures from your computer" title="Add pictures"><svg viewBox="0 0 18 18"><rect class="ln" x="2.9" y="3.7" width="12.2" height="10.6" rx="2.6"/><circle cx="6.6" cy="7.3" r="1.3"/><path class="pf" d="M5 12.6l2.9-3 1.9 1.8 1.7-1.6 1.6 2.8H5z"/></svg></button>
+          <textarea id="field-input" rows="1" maxlength="2000" autocomplete="off" autocapitalize="sentences" spellcheck="false" enterkeyhint="done" placeholder="Paste a link or screenshot, or write a note" aria-label="Paste a link or a screenshot, or write a note. Enter adds it; Shift and Enter starts a new line."></textarea>
+          <span id="paste-hint" class="paste-hint" aria-hidden="true"><kbd id="paste-key">⌘</kbd><kbd>V</kbd></span>
+          <button id="field-submit" class="field-submit" type="submit" hidden>
+            <span id="submit-label">Add note</span>
+            <svg viewBox="0 0 18 18" aria-hidden="true"><path class="ln" d="M14.6 4.4v3.4a2.2 2.2 0 01-2.2 2.2H3.6M6.5 7.1L3.6 10l2.9 2.9"/></svg>
+          </button>
+        </form>
+      </div>
+    </main>
+
+    <div id="finished" class="finished" hidden>
+      <div class="finished-card" role="dialog" aria-modal="true" aria-labelledby="finished-title" aria-describedby="finished-text">
+        <span class="finished-check" aria-hidden="true"><svg viewBox="0 0 18 18"><path class="ln" d="M4.4 9.6l3 3 6.2-6.4"/></svg></span>
+        <h2 id="finished-title">Your references are saved.</h2>
+        <p id="finished-text" class="finished-text">Go back to your agent. It reads the board, looks at every picture and link, and writes your taste into this file. The board stays open, and anything you change is saved for next time.</p>
+        <div class="finished-file">
+          <span class="finished-icon" aria-hidden="true"><svg viewBox="0 0 18 18"><rect class="ln" x="3.6" y="3" width="10.8" height="12" rx="2.4"/><path class="ln" d="M6.5 7h5M6.5 9.6h5M6.5 12.2h2.8"/></svg></span>
+          <span class="finished-where"><code id="finished-path">.claude/skills/taste/SKILL.md</code><span id="finished-count"></span></span>
+        </div>
+        <div class="finished-foot">
+          <span class="finished-hint"><kbd>Esc</kbd> to keep arranging</span>
+          <button id="finished-back" class="finished-back" type="button">Back to the board</button>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

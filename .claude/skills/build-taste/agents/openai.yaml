@@ -1,0 +1,4 @@
+interface:
+  display_name: "Build Taste"
+  short_description: "Collect references and build a project taste skill"
+  default_prompt: "Use $build-taste to open a canvas and build my project's design taste."

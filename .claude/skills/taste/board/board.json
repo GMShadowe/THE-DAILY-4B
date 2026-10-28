@@ -1,0 +1,124 @@
+{
+  "version": 1,
+  "name": "My taste",
+  "written": "2026-10-28T19:07:58.121Z",
+  "groups": [],
+  "things": [
+    {
+      "id": "3dc90763-69a8-4ff5-b2fd-2a43acdd9425",
+      "kind": "image",
+      "file": "images/cad5657c-dbe9-4ad4-9786-f5bf19d1c29d.png",
+      "name": "image",
+      "why": "",
+      "group": "",
+      "added": "2026-10-28",
+      "place": {
+        "x": -166,
+        "y": -129,
+        "w": 320,
+        "h": 240
+      }
+    },
+    {
+      "id": "35018875-ae80-4d86-b7d0-f76f68aae936",
+      "kind": "site",
+      "file": "images/b309f0b8-2c95-440a-a6e7-667eb6540fc5.jpg",
+      "url": "https://pin.it/4RVt5QTnn",
+      "title": "Okine Sans: Modern Sans-serif Font Family | Cool sans serif fonts, Clean sans serif font, Modern sans serif fonts free",
+      "why": "font",
+      "group": "",
+      "added": "2026-10-28",
+      "place": {
+        "x": -73,
+        "y": 181,
+        "w": 280,
+        "h": 248
+      }
+    },
+    {
+      "id": "1e9195e6-d8c6-40fd-93ef-1830fa038eff",
+      "kind": "site",
+      "file": "images/5fe515e4-6261-43a1-9bc7-e647c4245b92.jpg",
+      "url": "https://pin.it/65MDTyTej",
+      "title": "Where Design Meets Function - Mecil Amberov | Profile categories, Profile interests page design, Interests page in app",
+      "why": "onboarding",
+      "group": "",
+      "added": "2026-10-28",
+      "place": {
+        "x": -522,
+        "y": -187,
+        "w": 280,
+        "h": 324
+      }
+    },
+    {
+      "id": "ea6d2485-096a-4017-94f2-e26294a55c5b",
+      "kind": "image",
+      "file": "images/ff790a1f-4a52-4a7f-a3be-a4cc7156e4ef.png",
+      "name": "image",
+      "why": "",
+      "group": "",
+      "added": "2026-10-28",
+      "place": {
+        "x": -192,
+        "y": -512,
+        "w": 312,
+        "h": 320
+      }
+    },
+    {
+      "id": "a4b92dd0-ae03-42de-9fcd-889922c9ca89",
+      "kind": "note",
+      "text": "bento grid style, but newspaper like design, from the font to the colours",
+      "group": "",
+      "added": "2026-10-28",
+      "place": {
+        "x": 311,
+        "y": 232,
+        "w": 220,
+        "h": 112
+      }
+    },
+    {
+      "id": "61d27d0e-0cff-428c-be9d-f964b00b08b9",
+      "kind": "image",
+      "file": "images/94b71bf3-e957-4bcd-b6b1-b55b6fd03e69.png",
+      "name": "image",
+      "why": "",
+      "group": "",
+      "added": "2026-10-28",
+      "place": {
+        "x": -468,
+        "y": 221,
+        "w": 213,
+        "h": 320
+      }
+    },
+    {
+      "id": "ccf75b62-e822-490a-b4da-4e3bb7900476",
+      "kind": "note",
+      "text": "modern newspaper ui with bento layout",
+      "group": "",
+      "added": "2026-10-28",
+      "place": {
+        "x": 8,
+        "y": 493,
+        "w": 220,
+        "h": 56
+      }
+    },
+    {
+      "id": "830a5210-de7c-40ce-a1cb-1e07e1438227",
+      "kind": "note",
+      "text": "newspaper colours",
+      "group": "",
+      "added": "2026-10-28",
+      "place": {
+        "x": 271,
+        "y": 405,
+        "w": 220,
+        "h": 28
+      }
+    }
+  ]
+}

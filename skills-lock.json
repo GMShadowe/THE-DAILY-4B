@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "build-taste": {
+      "source": "anishfn/build-taste",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "51a9f3903a7eddac534c820e3bf713d493d869a5816574702573c8e927d3de9f"
+    }
+  }
+}

@@ -1,0 +1,209 @@
+/* The Build Taste canvas, in tasteboard's own look: the lab's greys, Public Sans, Caveat for handwriting, a
+   radius scale where inner corners are the outer minus the inset. Fonts are bundled, so it works offline. */
+
+@font-face { font-family: "Public Sans"; src: url("/fonts/public-sans.woff2?token=__TOKEN__") format("woff2"); font-weight: 100 900; font-display: block; }
+@font-face { font-family: "Caveat"; src: url("/fonts/caveat.woff2?token=__TOKEN__") format("woff2"); font-weight: 400 700; font-display: block; }
+
+:root {
+  --ground: #f2f2f2;
+  --ink: #171717;
+  --text: #707070;
+  --control: #ececec;
+  --control-hover: #e4e4e4;
+  --shadow-surface: 0 0 0 1px rgb(0 0 0 / 0.05), 0 1px 2px 0 rgb(0 0 0 / 0.03);
+  --shadow-faint: 0 0 0 1px rgb(0 0 0 / 0.035);
+  --shadow-popover: 0 0 0 1px rgb(0 0 0 / 0.05), 0 2px 4px -1px rgb(0 0 0 / 0.03), 0 8px 20px -6px rgb(0 0 0 / 0.06);
+  --ease: cubic-bezier(0.23, 1, 0.32, 1);
+  --hand: "Caveat", cursive;
+  font-family: "Public Sans", ui-sans-serif, system-ui, sans-serif;
+  color: var(--text);
+  background: var(--ground);
+  -webkit-font-smoothing: antialiased;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; overflow: hidden; overscroll-behavior: none; }
+button, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+[hidden] { display: none !important; }
+svg { display: block; width: 18px; height: 18px; fill: currentColor; }
+svg .ln { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+svg .pf { stroke: currentColor; stroke-width: 1; stroke-linejoin: round; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+::selection { background: #e7e7e7; color: var(--ink); }
+
+/* the stage */
+
+.stage { position: fixed; inset: 0; overflow: hidden; outline: none; touch-action: none; user-select: none; cursor: default; background: var(--ground); }
+.stage.hand { cursor: grab; }
+.stage.panning { cursor: grabbing; }
+/* the box dragged across the ground to pick several things */
+.marquee { position: absolute; z-index: 5; border: 1px solid rgb(23 23 23 / 0.45); border-radius: 4px; background: rgb(23 23 23 / 0.04); pointer-events: none; }
+.stage:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+.ground { position: absolute; inset: 0; pointer-events: none; mask-image: radial-gradient(ellipse at center, black 45%, transparent 100%); }
+.ground canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.dots { position: absolute; inset: 0; background-image: radial-gradient(circle, rgb(0 0 0 / 0.2) 1.25px, transparent 1.85px), radial-gradient(circle, rgb(0 0 0 / 0.12) 1px, transparent 1.6px); }
+.world { position: absolute; top: 50%; left: 50%; width: 0; height: 0; will-change: transform; opacity: 0; transition: opacity 200ms ease-out; }
+.world.placed { opacity: 1; }
+.zoomer { position: absolute; top: 0; left: 0; width: 0; height: 0; cursor: default; transform-origin: 0 0; }
+
+/* things */
+
+.tile { position: absolute; top: 0; left: 0; outline: none; }
+.face { position: relative; width: 100%; height: 100%; }
+.tile[data-kind="image"] .face { border-radius: 14px; }
+.tile[data-kind="site"] .face { border-radius: 16px; }
+.tile[data-kind="note"] .face { border-radius: 8px; }
+.tile.picked .face { outline: calc(2px * var(--inv)) solid var(--ink); outline-offset: calc(4px * var(--inv)); }
+.face > img { display: block; width: 100%; height: 100%; border-radius: 14px; object-fit: cover; box-shadow: var(--shadow-faint); pointer-events: none; -webkit-user-drag: none; }
+.site { display: flex; width: 100%; height: 100%; flex-direction: column; padding: 4px; border-radius: 16px; background: #fff; box-shadow: var(--shadow-surface); }
+.site img { display: block; width: 100%; min-height: 0; flex: 1; border-radius: 12px; object-fit: cover; object-position: top; pointer-events: none; -webkit-user-drag: none; }
+.site .wait { flex: 1; border-radius: 12px; background: linear-gradient(100deg, transparent 30%, rgb(255 255 255 / 0.6) 50%, transparent 70%) var(--ground); background-size: 200% 100%; animation: sheen 1.6s ease-in-out infinite; }
+.site-foot { display: flex; height: 44px; flex: none; align-items: center; gap: 8px; padding: 0 8px; font-size: 13px; line-height: 1; }
+.site-letter { display: inline-flex; width: 16px; height: 16px; flex: none; align-items: center; justify-content: center; border-radius: 4px; background: var(--control); color: #525252; font-size: 10px; font-weight: 500; text-transform: uppercase; }
+.site-title { min-width: 0; flex: 1; overflow: hidden; color: var(--ink); text-overflow: ellipsis; white-space: nowrap; }
+.site-host { max-width: 45%; flex: none; overflow: hidden; color: #737373; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.note { margin: 0; color: #262626; font-family: var(--hand); font-size: 26px; line-height: 1.08; overflow-wrap: break-word; white-space: pre-wrap; }
+.why { position: absolute; top: 100%; left: 4px; display: -webkit-box; width: calc(100% - 8px); margin: 6px 0 0; overflow: hidden; color: #525252; font-family: var(--hand); font-size: 20px; line-height: 1.1; overflow-wrap: break-word; pointer-events: none; -webkit-box-orient: vertical; -webkit-line-clamp: 4; line-clamp: 4; }
+.tile.in .face { animation: tile-in 320ms var(--ease) both; }
+.tile.out { pointer-events: none; }
+.tile.out .face { animation: tile-out 150ms var(--ease) both; }
+/* the corner to pull: a small white square sitting on the picked ring, at the middle of its rounded corner, the
+   same size at any zoom. The ring is 2px, 4px out from a face with --r corners, so its line runs 5px out with a
+   radius of --r + 5px, and the middle of that curve is 29.3% of the radius in from the corner of its box */
+.tile { --r: 14px; }
+.tile[data-kind="site"] { --r: 16px; }
+.tile[data-kind="note"] { --r: 8px; }
+.handle { --o: calc(5px * var(--inv) - (var(--r) + 5px * var(--inv)) * 0.2929); position: absolute; right: 0; bottom: 0; width: 12px; height: 12px; border: 2px solid var(--ink); border-radius: 4px; background: #fff; cursor: nwse-resize; translate: calc(50% + var(--o)) calc(50% + var(--o)); scale: var(--inv); transition: scale 150ms var(--ease); }
+.handle::after { content: ""; position: absolute; inset: -8px; }
+.handle:hover { scale: calc(var(--inv) * 1.25); }
+.stage.busy .handle, .stage.busy .float { opacity: 0; pointer-events: none; }
+
+/* groups: a dotted ring, its name sitting on the ring */
+
+.ring { position: absolute; top: 0; left: 0; pointer-events: none; }
+.ring svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.ring rect { fill: none; stroke: var(--ink); stroke-opacity: 0.3; stroke-width: 1.5; stroke-dasharray: 1 6; stroke-linecap: round; vector-effect: non-scaling-stroke; transition: stroke-opacity 150ms; }
+.ring.picked rect { stroke-opacity: 0.9; stroke-width: 2; }
+.ring-name { position: absolute; top: 0; left: 24px; display: flex; height: 20px; align-items: center; padding: 0 6px; border: 0; border-radius: 6px; background: var(--ground); color: #525252; font-size: 12px; line-height: 1; white-space: nowrap; pointer-events: auto; transform-origin: left center; translate: 0 -50%; scale: var(--inv); cursor: pointer; }
+.ring.picked .ring-name { color: var(--ink); }
+
+/* bars that float over things: the same size at any zoom. 40px, 14px corners, 4px in: 32px controls at 10 */
+
+.float { position: absolute; z-index: 2147483000; display: flex; height: 40px; align-items: center; gap: 2px; padding: 4px; border-radius: 14px; background: #fff; box-shadow: var(--shadow-popover); cursor: default; transform-origin: bottom center; scale: var(--inv); transition: opacity 150ms ease-out; }
+.item-bar { bottom: 100%; left: 50%; width: 300px; translate: -50% calc(-10px * var(--inv)); }
+/* no room above, under the corners: the bar sits under the thing, past the line written there */
+.item-bar.below { top: calc(100% + var(--under, 0px)); bottom: auto; transform-origin: top center; translate: -50% calc(10px * var(--inv)); }
+.float input { height: 32px; min-width: 0; flex: 1; padding: 0 10px; border: 0; border-radius: 10px; background: transparent; color: var(--ink); font-size: 13px; outline: none; user-select: text; }
+.float input::placeholder, .float textarea::placeholder { color: #737373; }
+/* a note's own field grows with its lines, and so does its bar */
+.item-bar:has(.note-field) { height: auto; min-height: 40px; align-items: flex-end; }
+.note-field { min-width: 0; flex: 1; max-height: 120px; padding: 7px 10px; border: 0; border-radius: 10px; background: transparent; color: var(--ink); font-size: 13px; line-height: 18px; resize: none; outline: none; user-select: text; }
+.float .tool { width: 32px; }
+.float .count { padding: 0 10px; color: #525252; font-size: 13px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.float .primary { display: flex; height: 32px; align-items: center; padding: 0 12px; border: 0; border-radius: 10px; background: var(--ink); color: #fff; font-size: 13px; font-weight: 500; }
+.float .plain { display: flex; height: 32px; align-items: center; padding: 0 10px; border: 0; border-radius: 10px; background: transparent; color: #525252; font-size: 13px; }
+.float .plain:hover { background: rgb(0 0 0 / 0.06); color: var(--ink); }
+.many-bar { translate: -50% calc(-100% - 12px * var(--inv)); }
+.many-bar.below { transform-origin: top center; translate: -50% calc(12px * var(--inv)); }
+.many-bar input { width: 180px; flex: none; }
+
+/* the corners */
+
+.corner { position: absolute; top: 16px; display: flex; align-items: center; gap: 8px; pointer-events: none; }
+.corner-left { left: 16px; }
+.corner-right { right: 16px; }
+.corner > * { pointer-events: auto; }
+.chip { display: flex; height: 40px; max-width: calc(100vw - 32px - 470px); align-items: center; gap: 4px; padding: 4px 14px 4px 4px; border-radius: 14px; background: #fff; box-shadow: var(--shadow-surface); font-size: 13px; cursor: default; }
+.chip-mark { display: flex; width: 32px; height: 32px; flex: none; align-items: center; justify-content: center; color: var(--ink); }
+.chip-mark svg { width: 16px; height: 16px; }
+.name { position: relative; display: grid; min-width: 0; align-items: center; }
+.name > * { grid-area: 1 / 1; }
+#name-size { visibility: hidden; padding: 0 6px; overflow: hidden; font-weight: 500; white-space: pre; }
+#board-name { width: 100%; min-width: 0; height: 28px; padding: 0 6px; border: 0; border-radius: 6px; background: transparent; color: var(--ink); font-weight: 500; outline: none; transition: background-color 150ms; user-select: text; }
+#board-name:hover, #board-name:focus { background: rgb(0 0 0 / 0.05); }
+.chip-rule, .bar-rule { width: 1px; height: 12px; flex: none; margin: 0 4px; background: rgb(0 0 0 / 0.1); }
+.bar-rule { height: 16px; margin: 0 2px; }
+.chip-count { flex: none; color: #525252; font-variant-numeric: tabular-nums; }
+.chip-count b { color: var(--ink); font-weight: 500; }
+.chip-saved { min-width: 0; overflow: hidden; color: #737373; text-overflow: ellipsis; white-space: nowrap; }
+.bar { display: flex; height: 40px; align-items: center; gap: 2px; padding: 4px; border-radius: 14px; background: #fff; box-shadow: var(--shadow-surface); color: #404040; }
+.tool { display: flex; height: 32px; min-width: 32px; align-items: center; justify-content: center; border: 0; border-radius: 10px; background: transparent; color: #525252; transition: background-color 150ms, color 150ms, transform 150ms; }
+.tool:hover { background: rgb(0 0 0 / 0.06); color: var(--ink); }
+.tool svg { width: 16px; height: 16px; }
+.tool-percent { width: 46px; color: var(--ink); font-size: 12px; font-variant-numeric: tabular-nums; }
+.finish { display: flex; height: 40px; align-items: center; padding: 0 16px; border: 0; border-radius: 14px; background: var(--ink); color: #fff; font-size: 13px; font-weight: 500; box-shadow: var(--shadow-surface); transition: opacity 150ms, transform 150ms; }
+.finish:disabled { cursor: default; opacity: 0.35; }
+button:active:not(:disabled):not(.ring-name) { transform: scale(0.96); }
+
+/* the empty board */
+
+.empty { position: absolute; top: 46%; left: 20px; right: 20px; text-align: center; transform: translateY(-50%); pointer-events: none; }
+.empty-title { max-width: 17ch; margin: 0 auto; color: var(--ink); font-size: clamp(30px, 4vw, 44px); font-weight: 500; letter-spacing: -0.04em; line-height: 1.07; }
+.empty-text { max-width: 44ch; margin: 16px auto 0; color: #525252; font-size: 16px; line-height: 1.55; text-wrap: pretty; }
+.empty-text span { color: var(--ink); font-weight: 500; }
+
+/* the foot: a line that says what's going on, then the field. 48px field, 16px corners, 6px in: 36px at 10 */
+
+.foot { position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 0 16px 20px; pointer-events: none; }
+.line-slot { display: flex; height: 32px; align-items: center; }
+.line { display: flex; height: 32px; align-items: center; margin: 0; padding: 0 12px; border-radius: 10px; background: #fff; box-shadow: var(--shadow-surface); color: #404040; font-family: var(--hand); font-size: 19px; line-height: 1; animation: words-in 220ms var(--ease) both; }
+/* the field: one way in. 48px tall at rest, 16px corners, 6px in: 36px controls at 10. It grows with a longer note. */
+.field { display: flex; width: 100%; max-width: 480px; min-height: 48px; align-items: flex-end; gap: 6px; padding: 6px; border-radius: 16px; background: #fff; box-shadow: var(--shadow-surface), 0 0 0 2px rgb(23 23 23 / 0), 0 0 0 5px rgb(0 0 0 / 0); cursor: text; pointer-events: auto; transition: box-shadow 200ms ease-out; }
+.field:focus-within { box-shadow: var(--shadow-surface), 0 0 0 2px rgb(23 23 23 / 0.5), 0 0 0 5px rgb(0 0 0 / 0.05); }
+.field-pictures { display: flex; width: 36px; height: 36px; flex: none; align-items: center; justify-content: center; border: 0; border-radius: 10px; background: var(--control); color: #525252; transition: background-color 150ms, color 150ms, transform 150ms; }
+.field-pictures:hover { background: var(--control-hover); color: var(--ink); }
+.field-pictures svg { width: 17px; height: 17px; }
+.field textarea { min-width: 0; flex: 1; height: 36px; max-height: 128px; padding: 9px 6px; border: 0; background: transparent; color: var(--ink); font-size: 14px; line-height: 18px; resize: none; outline: none; overflow-y: auto; user-select: text; scrollbar-width: thin; }
+.field textarea::placeholder { color: #737373; }
+/* empty: a quiet hint that a screenshot can be pasted straight in */
+.paste-hint { display: flex; height: 36px; flex: none; align-items: center; gap: 3px; padding: 0 8px 0 4px; pointer-events: none; transition: opacity 150ms; }
+.paste-hint kbd { display: inline-flex; min-width: 20px; height: 20px; align-items: center; justify-content: center; padding: 0 5px; border-radius: 6px; background: var(--ground); color: #737373; font: inherit; font-size: 11px; }
+/* with words in it: what Enter will add, in black */
+.field-submit { display: flex; height: 36px; flex: none; align-items: center; gap: 6px; padding: 0 10px 0 14px; border: 0; border-radius: 10px; background: var(--ink); color: #fff; font-size: 13px; font-weight: 500; white-space: nowrap; animation: words-in 160ms var(--ease) both; transition: transform 150ms; }
+.field-submit svg { width: 14px; height: 14px; opacity: 0.6; }
+
+/* finished: one card over the board. 24px corners, 24px in: the file row and the button at 12 and 10 */
+
+.finished { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; padding: 20px; background: rgb(242 242 242 / 0.72); cursor: pointer; animation: words-in 200ms ease-out both; }
+.finished-card { width: min(100%, 400px); padding: 24px; border-radius: 24px; background: #fff; box-shadow: var(--shadow-popover); cursor: default; animation: card-in 320ms var(--ease) both; }
+.finished-check { display: flex; width: 32px; height: 32px; align-items: center; justify-content: center; border-radius: 10px; background: var(--ink); color: #fff; }
+.finished-check svg { width: 16px; height: 16px; }
+.finished-card h2 { margin: 18px 0 0; color: var(--ink); font-size: 20px; font-weight: 500; letter-spacing: -0.02em; line-height: 1.25; }
+.finished-text { margin: 8px 0 0; color: var(--text); font-size: 14px; line-height: 1.6; text-wrap: pretty; }
+.finished-file { display: flex; align-items: center; gap: 12px; margin-top: 16px; padding: 10px 12px; border-radius: 12px; background: var(--ground); }
+.finished-icon { display: flex; width: 32px; height: 32px; flex: none; align-items: center; justify-content: center; border-radius: 8px; background: #fff; color: #525252; box-shadow: var(--shadow-faint); }
+.finished-icon svg { width: 16px; height: 16px; }
+.finished-where { display: grid; min-width: 0; gap: 2px; }
+.finished-where code { overflow: hidden; color: var(--ink); font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+#finished-count { color: #737373; font-size: 12px; font-variant-numeric: tabular-nums; }
+.finished-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 20px; }
+.finished-hint { color: #a3a3a3; font-size: 12px; }
+.finished-hint kbd { display: inline-flex; height: 20px; align-items: center; margin-right: 4px; padding: 0 6px; border-radius: 6px; background: var(--control); color: #525252; font: inherit; font-size: 11px; }
+.finished-back { display: flex; height: 36px; flex: none; align-items: center; padding: 0 14px; border: 0; border-radius: 10px; background: var(--ink); color: #fff; font-size: 13px; font-weight: 500; transition: transform 150ms; }
+
+@keyframes tile-in { from { opacity: 0; scale: 0.92; filter: blur(6px); } }
+@keyframes tile-out { to { opacity: 0; scale: 0.96; filter: blur(4px); } }
+@keyframes words-in { from { opacity: 0; filter: blur(4px); } }
+@keyframes card-in { from { opacity: 0; scale: 0.96; filter: blur(4px); } }
+@keyframes sheen { from { background-position: 150% 0; } to { background-position: -50% 0; } }
+
+button:focus-visible, .ring-name:focus-visible, .tile:focus-visible .face { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+@media (max-width: 760px) {
+  .corner { top: 12px; }
+  .corner-left { left: 12px; }
+  .corner-right { right: 12px; }
+  .bar, .chip-saved, .chip-rule:last-of-type { display: none; }
+  .chip { max-width: calc(100vw - 24px - 96px); padding-right: 10px; }
+  .chip-count { display: none; }
+  .finish { padding: 0 12px; font-size: 0; }
+  .finish::after { content: attr(data-short); font-size: 13px; }
+  .foot { padding: 0 12px 12px; }
+  .field textarea, .float input, .note-field { font-size: 16px; }
+  .paste-hint { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
