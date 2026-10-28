@@ -9,7 +9,26 @@ import { parse, stringify } from 'yaml'
 const configPath = fileURLToPath(new URL('../config.yaml', import.meta.url))
 const examplePath = fileURLToPath(new URL('../config.example.yaml', import.meta.url))
 const dataDir = fileURLToPath(new URL('../data/', import.meta.url))
+const envPath = fileURLToPath(new URL('../.env', import.meta.url))
 const defaultHost = 'http://localhost:11434'
+const defaultApiBase = 'https://api.openai.com/v1'
+const keyLine = /^DAILY4B_API_KEY=.*$/m
+
+function readEnv() {
+  return fs.existsSync(envPath) ? fs.readFileSync(envPath, 'utf8') : ''
+}
+
+function hasApiKey() {
+  return Boolean(process.env.DAILY4B_API_KEY) || /^DAILY4B_API_KEY=\S+/m.test(readEnv())
+}
+
+function saveApiKey(key) {
+  const line = `DAILY4B_API_KEY=${key.replace(/\s/g, '')}`
+  const text = readEnv()
+  const next = keyLine.test(text) ? text.replace(keyLine, () => line) : `${text}${text && !text.endsWith('\n') ? '\n' : ''}${line}\n`
+  fs.writeFileSync(envPath, next)
+  fs.chmodSync(envPath, 0o600)
+}
 
 function readYaml(file) {
   return fs.existsSync(file) ? parse(fs.readFileSync(file, 'utf8')) || {} : null
@@ -31,6 +50,19 @@ function cleanHost(value, fallback) {
   } catch {
     return fallback
   }
+}
+
+function cleanUrl(value, fallback) {
+  try {
+    const url = new URL(value)
+    return ['http:', 'https:'].includes(url.protocol) ? url.href.replace(/\/$/, '') : fallback
+  } catch {
+    return fallback
+  }
+}
+
+function oneOf(value, options, fallback) {
+  return options.includes(value) ? value : fallback
 }
 
 function readBody(req) {
@@ -68,24 +100,29 @@ async function handle(req, res) {
   const { pathname, searchParams } = new URL(req.url, 'http://localhost')
 
   if (pathname === '/api/config' && req.method === 'GET') {
-    return send(res, 200, { exists: Boolean(current), config: base, catalog })
+    return send(res, 200, { exists: Boolean(current), config: base, catalog, api_key_set: hasApiKey() })
   }
 
   if (pathname === '/api/config' && req.method === 'POST') {
     const body = await readBody(req)
     const pick = (list, urls) => list.filter((f) => Array.isArray(urls) && urls.includes(f.url))
     const next = {
-      ...base,
       city: cleanString(body.city, base.city),
       country: cleanString(body.country, base.country),
+      units: oneOf(body.units, ['celsius', 'fahrenheit'], base.units || 'celsius'),
+      provider: oneOf(body.provider, ['ollama', 'openai'], base.provider || 'ollama'),
       ollama_host: cleanHost(body.ollama_host, base.ollama_host || defaultHost),
       ollama_model: cleanString(body.ollama_model, base.ollama_model),
+      api_base_url: cleanUrl(body.api_base_url, base.api_base_url || defaultApiBase),
+      api_model: typeof body.api_model === 'string' ? body.api_model.trim().slice(0, 200) : base.api_model || '',
       max_articles: Math.min(30, Math.max(6, parseInt(body.max_articles, 10) || base.max_articles || 18)),
       tech_feeds: pick(catalog.tech_feeds, body.tech_feeds),
       science_feeds: pick(catalog.science_feeds, body.science_feeds),
     }
+    for (const [key, value] of Object.entries(base)) if (!(key in next)) next[key] = value
+    if (typeof body.api_key === 'string' && body.api_key.trim()) saveApiKey(body.api_key.slice(0, 500))
     fs.writeFileSync(configPath, stringify(next))
-    return send(res, 200, { ok: true, config: next })
+    return send(res, 200, { ok: true, config: next, api_key_set: hasApiKey() })
   }
 
   if (pathname === '/api/models' && req.method === 'GET') {
