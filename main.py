@@ -14,7 +14,7 @@ def run(config_path):
         sys.exit(1)
 
     print("checking weather...")
-    weather_data = weather.fetch(config.get("city"), config.get("country"))
+    weather_data = weather.fetch(config["city"], config["country"], config["units"])
 
     print("researching...")
     pool = research.gather(config)

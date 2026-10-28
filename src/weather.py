@@ -28,7 +28,7 @@ def _geocode(city, country):
     return (place["latitude"], place["longitude"]) if place else None
 
 
-def fetch(city, country):
+def fetch(city, country, units="celsius"):
     coords = _geocode(city, country)
     if not coords:
         return None
@@ -42,6 +42,7 @@ def fetch(city, country):
             "current": "temperature_2m,weather_code",
             "daily": "temperature_2m_max,temperature_2m_min",
             "timezone": "auto",
+            "temperature_unit": units,
         },
         timeout=15,
     )
@@ -55,6 +56,7 @@ def fetch(city, country):
         "city": city,
         "country": country,
         "temperature": current.get("temperature_2m"),
+        "unit": "F" if units == "fahrenheit" else "C",
         "code": code,
         "condition": WEATHER_CODES.get(code, "Unknown"),
         "high": (daily.get("temperature_2m_max") or [None])[0],
