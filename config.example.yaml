@@ -1,8 +1,12 @@
 city: "San Francisco"
 country: "United States"
+units: "celsius"
 
+provider: "ollama"
 ollama_host: "http://localhost:11434"
 ollama_model: "qwen3.5:4b"
+api_base_url: "https://api.openai.com/v1"
+api_model: ""
 
 max_articles: 18
 

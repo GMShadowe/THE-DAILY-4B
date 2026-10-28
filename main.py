@@ -1,19 +1,17 @@
 import argparse
 import sys
-from pathlib import Path
 
-import yaml
-
-from src import research, curate, build, weather
+from src import build, curate, research, weather
+from src import config as settings
 
 
 def run():
-    if not Path("config.yaml").exists():
-        print("no config.yaml yet. run `npm run dev` in web/ and open the site to set up,")
-        print("or copy config.example.yaml to config.yaml and edit it.")
+    settings.load_env()
+    try:
+        config = settings.load(settings.ROOT / "config.yaml")
+    except settings.ConfigError as e:
+        print(e)
         sys.exit(1)
-
-    config = yaml.safe_load(open("config.yaml"))
 
     print("checking weather...")
     weather_data = weather.fetch(config.get("city"), config.get("country"))
