@@ -1,0 +1,27 @@
+name: Bug report
+description: Something broke or printed the wrong thing
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what you got instead.
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Output
+      description: Paste the output of `python3 main.py --dry-run` or the failing `--now` run. Remove any API keys.
+      render: text
+  - type: input
+    id: model
+    attributes:
+      label: Model and provider
+      placeholder: qwen3.5:4b on Ollama
+  - type: input
+    id: system
+    attributes:
+      label: OS, Python and Node versions
+      placeholder: macOS 26, Python 3.12, Node 22
