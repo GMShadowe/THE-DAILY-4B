@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   ArrowLeft, ArrowRight, Atom, Bot, BrainCircuit, Cable, Check, Cloud, Copy, Cpu, FlaskConical, GraduationCap,
-  Info, Leaf, Loader2, MapPin, Newspaper, PenLine, RefreshCw, Rocket, Search, Smartphone, Sparkles, Terminal,
+  Info, Leaf, Loader2, MapPin, Newspaper, PenLine, Plus, RefreshCw, Rocket, Search, Smartphone, Sparkles, Terminal,
 } from 'lucide-react'
 import { labelClass } from '../lib/categories'
 
@@ -362,7 +362,61 @@ function ModelStep({ form, update }) {
   )
 }
 
-function SourcesStep({ form, update, catalog }) {
+function AddSource({ onAdd }) {
+  const [url, setUrl] = useState('')
+  const [group, setGroup] = useState('tech')
+  const [state, setState] = useState({ busy: false, error: '' })
+
+  async function submit(e) {
+    e.preventDefault()
+    setState({ busy: true, error: '' })
+    try {
+      const r = await fetch('/api/feed-check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: url.trim() }),
+      })
+      const d = await r.json()
+      if (!d.ok) throw new Error(d.error || "Couldn't add that feed.")
+      onAdd({ name: d.name, url: d.url }, group)
+      setUrl('')
+      setState({ busy: false, error: '' })
+    } catch (err) {
+      setState({ busy: false, error: err.message })
+    }
+  }
+
+  return (
+    <form onSubmit={submit} className="mt-8">
+      <h2 className="mb-4 text-xl font-semibold tracking-[-0.01em]">Add your own</h2>
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <input
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="https://example.com/feed.xml"
+          aria-label="Feed URL"
+          className={inputClass}
+        />
+        <select
+          value={group}
+          onChange={(e) => setGroup(e.target.value)}
+          aria-label="Section"
+          className={`${inputClass} sm:w-auto`}
+        >
+          <option value="tech">Technology &amp; AI</option>
+          <option value="science">Science</option>
+        </select>
+        <button type="submit" disabled={!url.trim() || state.busy} className={`${primaryButton} justify-center`}>
+          {state.busy ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
+          Add
+        </button>
+      </div>
+      {state.error && <p className="mt-2 text-sm text-accent">{state.error}</p>}
+    </form>
+  )
+}
+
+function SourcesStep({ form, update, catalog, onAdd }) {
   const groups = [
     ['Technology & AI', catalog.tech_feeds],
     ['Science', catalog.science_feeds],
@@ -422,6 +476,8 @@ function SourcesStep({ form, update, catalog }) {
           </div>
         )
       })}
+
+      <AddSource onAdd={onAdd} />
 
       <div className="mt-9">
         <div className="mb-3 flex items-baseline justify-between">
@@ -512,11 +568,22 @@ export default function Onboarding() {
           api_key: '',
           api_key_set,
           feeds: new Set([...(config.tech_feeds || []), ...(config.science_feeds || [])].map((f) => f.url)),
+          custom: [],
         })
         setStatus('ready')
       })
       .catch(() => setStatus('offline'))
   }, [])
+
+  function addFeed(feed, group) {
+    const key = group === 'science' ? 'science_feeds' : 'tech_feeds'
+    setCatalog((c) => ({ ...c, [key]: c[key].some((f) => f.url === feed.url) ? c[key] : [...c[key], feed] }))
+    setForm((f) => ({
+      ...f,
+      feeds: new Set([...f.feeds, feed.url]),
+      custom: [...f.custom.filter((c) => c.url !== feed.url), { ...feed, group }],
+    }))
+  }
 
   function update(patch) {
     setForm((f) => ({ ...f, ...patch }))
@@ -526,7 +593,7 @@ export default function Onboarding() {
     setSaving(true)
     setError('')
     try {
-      const { feeds, ...rest } = form
+      const { feeds, custom, ...rest } = form
       const r = await fetch('/api/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -534,6 +601,7 @@ export default function Onboarding() {
           ...rest,
           tech_feeds: catalog.tech_feeds.filter((f) => feeds.has(f.url)).map((f) => f.url),
           science_feeds: catalog.science_feeds.filter((f) => feeds.has(f.url)).map((f) => f.url),
+          custom_feeds: custom.filter((f) => feeds.has(f.url)),
         }),
       })
       if (!r.ok) throw new Error((await r.json()).error || 'Could not save settings')
@@ -623,7 +691,7 @@ export default function Onboarding() {
           >
             {step === 0 && <LocationStep form={form} update={update} />}
             {step === 1 && <ModelStep form={form} update={update} />}
-            {step === 2 && <SourcesStep form={form} update={update} catalog={catalog} />}
+            {step === 2 && <SourcesStep form={form} update={update} catalog={catalog} onAdd={addFeed} />}
             {step === 3 && <Done />}
           </motion.div>
         </AnimatePresence>
