@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
-  ArrowLeft, ArrowRight, Atom, Bot, BrainCircuit, Cable, Check, Copy, Cpu, FlaskConical, GraduationCap,
+  ArrowLeft, ArrowRight, Atom, Bot, BrainCircuit, Cable, Check, Cloud, Copy, Cpu, FlaskConical, GraduationCap,
   Info, Leaf, Loader2, MapPin, Newspaper, PenLine, RefreshCw, Rocket, Search, Smartphone, Sparkles, Terminal,
 } from 'lucide-react'
 import { labelClass } from '../lib/categories'
@@ -163,7 +163,7 @@ function isRecommended(parameterSize) {
   return value >= 2.5 && value <= 5.5
 }
 
-function ModelStep({ form, update }) {
+function OllamaPicker({ form, update }) {
   const [state, setState] = useState({ loading: true, ok: false, models: [] })
   const [host, setHost] = useState(form.ollama_host)
   const [attempt, setAttempt] = useState(0)
@@ -190,12 +190,7 @@ function ModelStep({ form, update }) {
 
   return (
     <>
-      <StepHeader
-        title="Who edits your paper?"
-        description="A small local model reads every candidate story and keeps only the best. Models around 4B are the sweet spot."
-      />
-
-      <div className="mt-8">
+      <div className="mt-6">
         {state.loading ? (
           <div className="flex items-center gap-2 py-6 text-muted">
             <Loader2 className="size-4 animate-spin" />
@@ -265,6 +260,104 @@ function ModelStep({ form, update }) {
           </button>
         </div>
       </div>
+    </>
+  )
+}
+
+const apiPresets = [
+  ['OpenAI', 'https://api.openai.com/v1'],
+  ['OpenRouter', 'https://openrouter.ai/api/v1'],
+  ['Groq', 'https://api.groq.com/openai/v1'],
+  ['LM Studio', 'http://localhost:1234/v1'],
+]
+
+function ApiPicker({ form, update }) {
+  return (
+    <div className="mt-6 space-y-5">
+      <div>
+        <Label>Provider</Label>
+        <div className="flex flex-wrap gap-2.5 p-px">
+          {apiPresets.map(([name, url]) => (
+            <button
+              key={name}
+              type="button"
+              onClick={() => update({ api_base_url: url })}
+              aria-pressed={form.api_base_url === url}
+              className={`rounded-full border px-4 py-2.5 text-[15px] transition-colors ${
+                form.api_base_url === url ? selectedRing : 'border-line hover:border-fg/50'
+              }`}
+            >
+              {name}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <Label>API base URL</Label>
+        <input
+          value={form.api_base_url}
+          onChange={(e) => update({ api_base_url: e.target.value })}
+          placeholder="https://api.openai.com/v1"
+          className={inputClass}
+        />
+      </div>
+      <div>
+        <Label>Model</Label>
+        <input
+          value={form.api_model}
+          onChange={(e) => update({ api_model: e.target.value })}
+          placeholder="The model ID your provider lists"
+          className={inputClass}
+        />
+      </div>
+      <div>
+        <Label>API key</Label>
+        <input
+          type="password"
+          autoComplete="off"
+          value={form.api_key}
+          onChange={(e) => update({ api_key: e.target.value })}
+          placeholder={form.api_key_set ? 'Saved. Leave blank to keep it' : 'Paste your key'}
+          className={inputClass}
+        />
+        <p className="mt-2 text-sm text-subtle">
+          Stored in .env on this machine, never in config.yaml. Not needed for LM Studio.
+        </p>
+      </div>
+    </div>
+  )
+}
+
+const providers = [
+  ['ollama', Cpu, 'On this computer', 'Free and private, runs with Ollama'],
+  ['openai', Cloud, 'With an API key', 'OpenAI, OpenRouter, Groq or compatible'],
+]
+
+function ModelStep({ form, update }) {
+  return (
+    <>
+      <StepHeader
+        title="Who edits your paper?"
+        description="A model reads every candidate story and keeps only the best. Run a small one here, or bring a key for a hosted one."
+      />
+      <div className="mt-8 grid gap-2.5 p-px sm:grid-cols-2">
+        {providers.map(([value, Icon, title, description]) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() => update({ provider: value })}
+            aria-pressed={form.provider === value}
+            className={`rounded-lg border p-4 text-left transition-colors ${
+              form.provider === value ? selectedRing : 'border-line hover:border-fg/50'
+            }`}
+          >
+            <Icon className="size-6" strokeWidth={1.5} />
+            <span className="mt-3 block text-[15px] font-semibold">{title}</span>
+            <span className="mt-0.5 block text-sm text-muted">{description}</span>
+          </button>
+        ))}
+      </div>
+      {form.provider === 'openai' ? <ApiPicker form={form} update={update} /> : <OllamaPicker form={form} update={update} />}
     </>
   )
 }
@@ -404,7 +497,7 @@ export default function Onboarding() {
   useEffect(() => {
     fetch('/api/config')
       .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then(({ config, catalog }) => {
+      .then(({ config, catalog, api_key_set }) => {
         setCatalog(catalog)
         setForm({
           city: config.city || '',
@@ -413,6 +506,11 @@ export default function Onboarding() {
           ollama_model: config.ollama_model || '',
           max_articles: config.max_articles || 18,
           units: config.units || 'celsius',
+          provider: config.provider || 'ollama',
+          api_base_url: config.api_base_url || 'https://api.openai.com/v1',
+          api_model: config.api_model || '',
+          api_key: '',
+          api_key_set,
           feeds: new Set([...(config.tech_feeds || []), ...(config.science_feeds || [])].map((f) => f.url)),
         })
         setStatus('ready')
@@ -473,12 +571,12 @@ export default function Onboarding() {
   const allFeeds = catalog.tech_feeds.length + catalog.science_feeds.length
   const status_ = [
     form.city.trim() ? [form.city.trim(), form.country.trim()].filter(Boolean).join(', ') : 'Choose your city',
-    form.ollama_model.trim() || 'Choose a model',
+    (form.provider === 'openai' ? form.api_model : form.ollama_model).trim() || 'Choose a model',
     `${form.feeds.size}/${allFeeds} selected`,
   ][step]
   const canContinue = [
     form.city.trim() && form.country.trim(),
-    form.ollama_model.trim(),
+    form.provider === 'openai' ? form.api_model.trim() && form.api_base_url.trim() : form.ollama_model.trim(),
     form.feeds.size > 0,
   ][step]
 
