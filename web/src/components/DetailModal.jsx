@@ -14,6 +14,7 @@ export default function DetailModal({ item, issue, onClose }) {
     dialog.showModal()
     document.body.style.overflow = 'hidden'
     return () => {
+      dialog.close()
       document.body.style.overflow = previous
       trigger?.focus?.({ preventScroll: true })
     }
