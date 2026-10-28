@@ -8,7 +8,34 @@ class LLMError(Exception):
 
 
 def model_name(config):
-    return config["ollama_model"]
+    return config["api_model"] if config.get("provider") == "openai" else config["ollama_model"]
+
+
+def _openai(prompt, schema, config):
+    base = config["api_base_url"].rstrip("/")
+    headers = {"Content-Type": "application/json"}
+    if config.get("api_key"):
+        headers["Authorization"] = f"Bearer {config['api_key']}"
+    body = {
+        "model": config["api_model"],
+        "messages": [
+            {"role": "system", "content": "Reply with one JSON object matching this JSON schema:\n" + json.dumps(schema)},
+            {"role": "user", "content": prompt},
+        ],
+        "response_format": {"type": "json_object"},
+    }
+    try:
+        response = requests.post(f"{base}/chat/completions", headers=headers, json=body, timeout=600)
+        if response.status_code == 400 and "response_format" in response.text:
+            del body["response_format"]
+            response = requests.post(f"{base}/chat/completions", headers=headers, json=body, timeout=600)
+    except requests.ConnectionError:
+        raise LLMError(f"couldn't reach {base}")
+    if response.status_code in (401, 403):
+        raise LLMError(f"{base} rejected the API key. set DAILY4B_API_KEY in .env")
+    if not response.ok:
+        raise LLMError(f"{base} returned {response.status_code}: {response.text[:200]}")
+    return response.json()["choices"][0]["message"]["content"] or ""
 
 
 def _ollama(prompt, schema, config):
@@ -48,7 +75,7 @@ def parse_json(raw):
 
 def complete_json(prompt, schema, config, attempts=2):
     for attempt in range(attempts):
-        raw = _ollama(prompt, schema, config)
+        raw = (_openai if config.get("provider") == "openai" else _ollama)(prompt, schema, config)
         try:
             return parse_json(raw)
         except json.JSONDecodeError:
