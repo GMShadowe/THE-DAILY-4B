@@ -9,13 +9,15 @@
   --color-line: #cdc4b2;
   --color-fg: #1b1a17;
   --color-muted: #5e5a52;
-  --color-subtle: #857f73;
+  --color-subtle: #6b655a;
+  --color-control: #857f72;
   --color-accent: #c2401f;
   --color-accent-soft: #f6d8c8;
 }
 
 :root {
   color-scheme: light;
+  scroll-padding-block-start: 4rem;
 }
 
 body {
