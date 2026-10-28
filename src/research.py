@@ -63,8 +63,8 @@ def sources(config):
     return jobs
 
 
-def dedupe(items):
-    seen = set()
+def dedupe(items, exclude=()):
+    seen = set(exclude)
     result = []
     for item in items:
         key = item["link"] or item["title"]
@@ -75,7 +75,7 @@ def dedupe(items):
     return result
 
 
-def gather(config):
+def gather(config, exclude=()):
     with ThreadPoolExecutor(max_workers=8) as executor:
         results = executor.map(lambda job: fetch_feed(*job), sources(config))
-    return dedupe([item for items in results for item in items])
+    return dedupe([item for items in results for item in items], exclude)

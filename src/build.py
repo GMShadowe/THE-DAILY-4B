@@ -12,6 +12,22 @@ LATEST_PATH = DATA_DIR / "latest.json"
 INDEX_PATH = ARCHIVE_DIR / "index.json"
 
 
+def recent_links(days=3, data_dir=DATA_DIR, today=None):
+    today = today or datetime.now().date()
+    links = set()
+    for path in [data_dir / "latest.json", *(data_dir / "archive").glob("*.json")]:
+        if path.name == "index.json" or not path.exists():
+            continue
+        try:
+            issue = json.loads(path.read_text())
+            date = datetime.strptime(issue.get("date", ""), "%Y-%m-%d").date()
+        except (OSError, ValueError):
+            continue
+        if 0 < (today - date).days <= days:
+            links.update(a["link"] for a in issue.get("articles", []) if a.get("link"))
+    return links
+
+
 def write_issue(curated, config, weather_data=None):
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)

@@ -17,8 +17,9 @@ def run(config_path):
     weather_data = weather.fetch(config["city"], config["country"], config["units"])
 
     print("researching...")
-    pool = research.gather(config)
-    print(f"found {len(pool)} candidate articles")
+    seen = build.recent_links()
+    pool = research.gather(config, exclude=seen)
+    print(f"found {len(pool)} candidate articles ({len(seen)} recent stories skipped)")
 
     print(f"curating with {llm.model_name(config)}...")
     try:
