@@ -14,6 +14,10 @@ needs to open the original link to get the gist. Also rate its "importance" as "
 Use "high" for only the 2-4 biggest stories of the day, "medium" for solid stories worth
 a bigger spot, and "low" for everything else.
 
+Write a "headline" for the front page: one specific line of at most 12 words about the
+day's biggest story, the way a newspaper would print it. Never a generic title like
+"Daily Briefing" or "Morning News".
+
 Finally, write a "digest": a 4-6 sentence wrap-up of the entire day across all sections,
 written like the opening of a morning briefing, hitting the single most important story
 in each category you included.
