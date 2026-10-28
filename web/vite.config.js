@@ -236,6 +236,9 @@ function issueData() {
   }
 }
 
+const allowedHosts = process.env.DAILY4B_ALLOWED_HOSTS?.split(',').map((h) => h.trim()).filter(Boolean)
+
 export default defineConfig({
   plugins: [react(), tailwindcss(), issueData(), configApi()],
+  preview: { allowedHosts },
 })
