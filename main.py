@@ -5,10 +5,10 @@ from src import build, curate, research, weather
 from src import config as settings
 
 
-def run():
+def run(config_path):
     settings.load_env()
     try:
-        config = settings.load(settings.ROOT / "config.yaml")
+        config = settings.load(config_path)
     except settings.ConfigError as e:
         print(e)
         sys.exit(1)
@@ -31,6 +31,7 @@ def run():
 def main():
     parser = argparse.ArgumentParser(description="generate today's newspaper")
     parser.add_argument("--now", action="store_true", help="run the full pipeline once")
+    parser.add_argument("--config", default=settings.ROOT / "config.yaml", help="path to config.yaml")
     args = parser.parse_args()
 
     if not args.now:
@@ -38,7 +39,7 @@ def main():
         print("tip: schedule this with your own cron job for every morning.")
         sys.exit(0)
 
-    run()
+    run(args.config)
 
 
 if __name__ == "__main__":
