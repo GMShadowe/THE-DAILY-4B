@@ -131,6 +131,24 @@ function LocationStep({ form, update }) {
             className={inputClass}
           />
         </div>
+        <div>
+          <Label>Temperature</Label>
+          <div className="flex gap-2.5 p-px">
+            {[['celsius', '°C Celsius'], ['fahrenheit', '°F Fahrenheit']].map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => update({ units: value })}
+                aria-pressed={form.units === value}
+                className={`rounded-full border px-4 py-2.5 text-[15px] transition-colors ${
+                  form.units === value ? selectedRing : 'border-line hover:border-fg/50'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
     </>
   )
@@ -394,6 +412,7 @@ export default function Onboarding() {
           ollama_host: config.ollama_host || 'http://localhost:11434',
           ollama_model: config.ollama_model || '',
           max_articles: config.max_articles || 18,
+          units: config.units || 'celsius',
           feeds: new Set([...(config.tech_feeds || []), ...(config.science_feeds || [])].map((f) => f.url)),
         })
         setStatus('ready')
