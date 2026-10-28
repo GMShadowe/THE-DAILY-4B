@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 import feedparser
 import requests
 
-USER_AGENT = "Mozilla/5.0 (compatible; Daily4B/0.1)"
+USER_AGENT = "Daily4B/0.1 (self-hosted morning paper)"
 TIMEOUT = 10
 
 
