@@ -1,7 +1,7 @@
 import argparse
 import sys
 
-from src import build, curate, llm, research, weather
+from src import build, curate, images, llm, research, weather
 from src import config as settings
 
 
@@ -28,6 +28,9 @@ def run(config_path):
         print(e)
         sys.exit(1)
     print(f"kept {len(curated.get('articles', []))} articles")
+
+    print("finding photos...")
+    print(f"found {images.enrich(curated['articles'])} more photos")
 
     issue = build.write_issue(curated, config, weather_data)
     print(f"wrote issue for {issue['date']} -> data/latest.json")
