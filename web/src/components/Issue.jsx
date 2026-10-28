@@ -5,6 +5,7 @@ import WeatherTile from './WeatherTile'
 import DigestTile from './DigestTile'
 import DetailModal from './DetailModal'
 import { categories, gridClass, labelClass } from '../lib/categories'
+import { pack, placement, tileSize, useColumns } from '../lib/grid'
 
 function interleave(list) {
   const groups = { high: [], medium: [], low: [] }
@@ -72,13 +73,28 @@ export default function Issue({ issue, archived = false }) {
     ['all', 'All stories', articles.length],
     ...Object.entries(categories).filter(([key]) => counts[key]).map(([key, meta]) => [key, meta.label, counts[key]]),
   ]
-  const visible = filter === 'all' ? articles : articles.filter((a) => a.category === filter)
+  const visible = useMemo(
+    () => (filter === 'all' ? articles : articles.filter((a) => a.category === filter)),
+    [articles, filter],
+  )
+  const columns = useColumns()
+  const placed = useMemo(
+    () => pack(
+      [
+        ...(issue.weather ? [{ key: 'weather', width: 2, height: 2 }] : []),
+        ...(issue.digest ? [{ key: 'digest', width: 2, height: 2 }] : []),
+        ...visible.map((article) => ({ key: article.link || article.title, article, ...tileSize(article.importance) })),
+      ],
+      columns,
+    ),
+    [issue.weather, issue.digest, visible, columns],
+  )
 
   return (
     <>
       <Masthead issue={issue} count={articles.length} archived={archived} />
 
-      <nav className="-mx-4 mb-6 overflow-x-auto border-b border-line px-4 sm:mx-0 sm:px-0">
+      <nav aria-label="Sections" className="-mx-4 mb-6 overflow-x-auto border-b border-line px-4 sm:mx-0 sm:px-0">
         <div className="flex min-w-max justify-start gap-7 md:justify-center">
           {sections.map(([key, label, count]) => {
             const active = filter === key
@@ -86,16 +102,17 @@ export default function Issue({ issue, archived = false }) {
               <button
                 key={key}
                 type="button"
+                aria-pressed={active}
                 onClick={() => setFilter(key)}
                 className={`${labelClass} relative py-3 transition-colors ${active ? 'text-fg' : 'text-muted hover:text-fg'}`}
               >
                 {label}
-                <sup className="ml-1 text-[9px] text-subtle">{count}</sup>
+                <sup className="ml-1 text-[9px] text-subtle tabular-nums">{count}</sup>
                 {active && (
                   <motion.span
                     layoutId="section-underline"
                     className="absolute inset-x-0 -bottom-px h-0.5 bg-accent"
-                    transition={{ type: 'spring', bounce: 0.15, duration: 0.4 }}
+                    transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
                   />
                 )}
               </button>
@@ -106,21 +123,31 @@ export default function Issue({ issue, archived = false }) {
 
       <LayoutGroup>
         <div className={gridClass}>
-          <WeatherTile weather={issue.weather} />
-          <DigestTile
-            headline={issue.headline}
-            digest={issue.digest}
-            onOpen={() => setSelected({ kind: 'digest' })}
-          />
           <AnimatePresence mode="popLayout">
-            {visible.map((article, i) => (
-              <BentoTile
-                key={article.link || article.title}
-                article={article}
-                index={i}
-                onOpen={() => setSelected({ kind: 'article', article })}
-              />
-            ))}
+            {placed.map((item, i) => {
+              const style = placement(item)
+              if (item.key === 'weather') return <WeatherTile key="weather" weather={issue.weather} style={style} />
+              if (item.key === 'digest') {
+                return (
+                  <DigestTile
+                    key="digest"
+                    headline={issue.headline}
+                    digest={issue.digest}
+                    style={style}
+                    onOpen={() => setSelected({ kind: 'digest' })}
+                  />
+                )
+              }
+              return (
+                <BentoTile
+                  key={item.key}
+                  article={item.article}
+                  index={i}
+                  style={style}
+                  onOpen={() => setSelected({ kind: 'article', article: item.article })}
+                />
+              )
+            })}
           </AnimatePresence>
         </div>
       </LayoutGroup>
