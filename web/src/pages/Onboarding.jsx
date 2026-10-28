@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
@@ -9,9 +9,9 @@ import { labelClass } from '../lib/categories'
 
 const steps = ['Location', 'Model', 'Sources']
 const inputClass =
-  'w-full rounded-lg border border-line bg-canvas px-4 py-3 text-[15px] outline-none transition-colors placeholder:text-subtle focus:border-fg'
+  'w-full rounded-lg border border-control bg-canvas px-4 py-3 text-base outline-none transition-colors placeholder:text-subtle focus:border-fg focus:ring-1 focus:ring-fg'
 const primaryButton =
-  'inline-flex items-center gap-1.5 rounded-lg bg-fg px-6 py-3 text-[15px] font-semibold text-surface transition-opacity hover:opacity-90 disabled:opacity-30'
+  'inline-flex items-center gap-1.5 rounded-lg bg-fg px-6 py-3 text-[15px] font-semibold text-surface transition-[opacity,scale] duration-150 ease-out hover:opacity-90 disabled:opacity-30 motion-safe:enabled:active:scale-[0.96]'
 const selectedRing = 'border-fg shadow-[inset_0_0_0_1px_var(--color-fg)]'
 
 const feedIcons = {
@@ -39,14 +39,25 @@ function StepHeader({ title, description }) {
   )
 }
 
-function Label({ children }) {
-  return <label className="mb-2 block text-sm font-medium">{children}</label>
+const labelText = 'mb-2 block text-sm font-medium'
+
+function Label({ htmlFor, children }) {
+  return (
+    <label htmlFor={htmlFor} className={labelText}>
+      {children}
+    </label>
+  )
 }
 
 function LocationStep({ form, update }) {
   const [query, setQuery] = useState(form.city)
   const [results, setResults] = useState([])
   const [open, setOpen] = useState(false)
+  const [active, setActive] = useState(-1)
+  const cityId = useId()
+  const countryId = useId()
+  const listId = useId()
+  const unitsId = useId()
 
   useEffect(() => {
     if (!open || query.trim().length < 2) return
@@ -56,7 +67,10 @@ function LocationStep({ form, update }) {
         signal: controller.signal,
       })
         .then((r) => r.json())
-        .then((d) => setResults(d.results || []))
+        .then((d) => {
+          setResults(d.results || [])
+          setActive(-1)
+        })
         .catch(() => {})
     }, 250)
     return () => {
@@ -73,66 +87,102 @@ function LocationStep({ form, update }) {
 
   const showResults = open && query.trim().length >= 2 && results.length > 0
 
+  function onKeyDown(e) {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault()
+      setOpen(true)
+      if (!results.length) return
+      const step = e.key === 'ArrowDown' ? 1 : -1
+      setActive((i) => (i + step + results.length) % results.length)
+    } else if (e.key === 'Enter' && showResults && active >= 0) {
+      e.preventDefault()
+      choose(results[active])
+    } else if (e.key === 'Escape' && showResults) {
+      e.preventDefault()
+      setOpen(false)
+    }
+  }
+
   return (
     <>
       <StepHeader
         title="Where do you wake up?"
-        description="We'll print your weather and the biggest local and national stories for this place."
+        description="We’ll print your weather and the biggest local and national stories for this place."
       />
       <div className="mt-8 space-y-5">
         <div className="relative">
-          <Label>City</Label>
+          <Label htmlFor={cityId}>City</Label>
           <div className="relative">
-            <Search className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-subtle" />
+            <Search
+              className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-subtle"
+            />
             <input
+              id={cityId}
+              role="combobox"
+              aria-expanded={showResults}
+              aria-controls={listId}
+              aria-autocomplete="list"
+              aria-activedescendant={showResults && active >= 0 ? `${listId}-${active}` : undefined}
+              autoComplete="address-level2"
               value={query}
               onChange={(e) => {
                 setQuery(e.target.value)
                 setOpen(true)
                 update({ city: e.target.value })
               }}
+              onKeyDown={onKeyDown}
               onBlur={() => setOpen(false)}
-              placeholder="Search for your city"
+              placeholder="Lisbon"
               className={`${inputClass} pl-11`}
               autoFocus
             />
           </div>
-          {showResults && (
-            <ul className="absolute z-10 mt-2 w-full overflow-hidden rounded-lg border border-fg bg-surface p-1 shadow-[0_12px_32px_-12px_rgba(27,26,23,0.35)]">
-              {results.map((place) => (
-                <li key={place.id}>
-                  <button
-                    type="button"
-                    onMouseDown={(e) => {
-                      e.preventDefault()
-                      choose(place)
-                    }}
-                    className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-[15px] hover:bg-inset"
-                  >
-                    <MapPin className="size-4 shrink-0 text-subtle" />
-                    <span className="truncate">
-                      {place.name}
-                      <span className="text-subtle">
-                        {' '}&middot; {[place.admin1, place.country].filter(Boolean).join(', ')}
-                      </span>
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
+          <ul
+            id={listId}
+            role="listbox"
+            aria-label="Matching cities"
+            hidden={!showResults}
+            className="absolute z-10 mt-2 w-full overflow-hidden rounded-[11px] border border-fg bg-surface p-1 shadow-[0_12px_32px_-12px_rgba(27,26,23,0.35)]"
+          >
+            {results.map((place, i) => (
+              <li
+                key={place.id}
+                id={`${listId}-${i}`}
+                role="option"
+                aria-selected={i === active}
+                onMouseDown={(e) => {
+                  e.preventDefault()
+                  choose(place)
+                }}
+                onMouseMove={() => setActive(i)}
+                className={`flex cursor-pointer items-center gap-3 rounded-md px-3 py-2.5 text-[15px] ${
+                  i === active ? 'bg-inset' : ''
+                }`}
+              >
+                <MapPin className="size-4 shrink-0 text-subtle" />
+                <span className="truncate">
+                  {place.name}
+                  <span className="text-subtle">
+                    {' '}&middot; {[place.admin1, place.country].filter(Boolean).join(', ')}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
         <div>
-          <Label>Country</Label>
+          <Label htmlFor={countryId}>Country</Label>
           <input
+            id={countryId}
+            autoComplete="country-name"
             value={form.country}
             onChange={(e) => update({ country: e.target.value })}
-            placeholder="Country"
+            placeholder="Portugal"
             className={inputClass}
           />
         </div>
-        <div>
-          <Label>Temperature</Label>
+        <div role="group" aria-labelledby={unitsId}>
+          <p id={unitsId} className={labelText}>Temperature</p>
           <div className="flex gap-2.5 p-px">
             {[['celsius', '°C Celsius'], ['fahrenheit', '°F Fahrenheit']].map(([value, label]) => (
               <button
@@ -167,6 +217,8 @@ function OllamaPicker({ form, update }) {
   const [state, setState] = useState({ loading: true, ok: false, models: [] })
   const [host, setHost] = useState(form.ollama_host)
   const [attempt, setAttempt] = useState(0)
+  const modelId = useId()
+  const hostId = useId()
 
   useEffect(() => {
     let cancelled = false
@@ -192,18 +244,19 @@ function OllamaPicker({ form, update }) {
     <>
       <div className="mt-6">
         {state.loading ? (
-          <div className="flex items-center gap-2 py-6 text-muted">
+          <div role="status" className="flex items-center gap-2 py-6 text-muted">
             <Loader2 className="size-4 animate-spin" />
             Looking for installed models&hellip;
           </div>
         ) : state.ok && state.models.length > 0 ? (
-          <div className="max-h-72 space-y-2.5 overflow-y-auto p-px">
+          <div role="group" aria-label="Installed models" className="max-h-72 space-y-2.5 overflow-y-auto overscroll-contain p-px">
             {state.models.map((m) => {
               const selected = form.ollama_model === m.name
               return (
                 <button
                   key={m.name}
                   type="button"
+                  aria-pressed={selected}
                   onClick={() => update({ ollama_model: m.name })}
                   className={`flex w-full items-center gap-3 rounded-lg border px-4 py-3.5 text-left transition-colors ${
                     selected ? selectedRing : 'border-line hover:border-fg/50'
@@ -228,14 +281,21 @@ function OllamaPicker({ form, update }) {
             <div className="flex gap-3 rounded-lg border border-accent/40 bg-accent-soft/40 p-4 text-[15px]">
               <Info className="mt-0.5 size-4 shrink-0 text-accent" />
               <p>
-                {state.ok
-                  ? 'Ollama is running but has no models yet. Pull one with `ollama pull qwen3.5:4b`, or type a name below.'
-                  : `Couldn't reach Ollama at ${form.ollama_host}. Make sure it's running, or type a model name below.`}
+                {state.ok ? (
+                  <>
+                    Ollama is running but has no models yet. Pull one with{' '}
+                    <code className="font-mono text-sm">ollama pull qwen3.5:4b</code>, or type a name below.
+                  </>
+                ) : (
+                  `Couldn’t reach Ollama at ${form.ollama_host}. Start it with “ollama serve” and refresh, or type a model name below.`
+                )}
               </p>
             </div>
             <div>
-              <Label>Model name</Label>
+              <Label htmlFor={modelId}>Model name</Label>
               <input
+                id={modelId}
+                spellCheck={false}
                 value={form.ollama_model}
                 onChange={(e) => update({ ollama_model: e.target.value })}
                 placeholder="qwen3.5:4b"
@@ -247,14 +307,23 @@ function OllamaPicker({ form, update }) {
       </div>
 
       <div className="mt-7">
-        <Label>Ollama host</Label>
+        <Label htmlFor={hostId}>Ollama host</Label>
         <div className="flex gap-2">
-          <input value={host} onChange={(e) => setHost(e.target.value)} className={inputClass} />
+          <input
+            id={hostId}
+            type="url"
+            spellCheck={false}
+            value={host}
+            onChange={(e) => setHost(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && refresh()}
+            placeholder="http://localhost:11434"
+            className={inputClass}
+          />
           <button
             type="button"
             onClick={refresh}
             aria-label="Refresh models"
-            className="grid size-[50px] shrink-0 place-items-center rounded-lg border border-line text-muted transition-colors hover:border-fg hover:text-fg"
+            className="grid size-[50px] shrink-0 place-items-center rounded-lg border border-control text-muted transition-colors hover:border-fg hover:text-fg"
           >
             <RefreshCw className={`size-4 ${state.loading ? 'animate-spin' : ''}`} />
           </button>
@@ -272,10 +341,16 @@ const apiPresets = [
 ]
 
 function ApiPicker({ form, update }) {
+  const providerId = useId()
+  const baseId = useId()
+  const modelId = useId()
+  const keyId = useId()
+  const keyHintId = useId()
+
   return (
     <div className="mt-6 space-y-5">
-      <div>
-        <Label>Provider</Label>
+      <div role="group" aria-labelledby={providerId}>
+        <p id={providerId} className={labelText}>Provider</p>
         <div className="flex flex-wrap gap-2.5 p-px">
           {apiPresets.map(([name, url]) => (
             <button
@@ -293,8 +368,11 @@ function ApiPicker({ form, update }) {
         </div>
       </div>
       <div>
-        <Label>API base URL</Label>
+        <Label htmlFor={baseId}>API base URL</Label>
         <input
+          id={baseId}
+          type="url"
+          spellCheck={false}
           value={form.api_base_url}
           onChange={(e) => update({ api_base_url: e.target.value })}
           placeholder="https://api.openai.com/v1"
@@ -302,26 +380,32 @@ function ApiPicker({ form, update }) {
         />
       </div>
       <div>
-        <Label>Model</Label>
+        <Label htmlFor={modelId}>Model ID</Label>
         <input
+          id={modelId}
+          spellCheck={false}
           value={form.api_model}
           onChange={(e) => update({ api_model: e.target.value })}
-          placeholder="The model ID your provider lists"
+          placeholder="provider/model-name"
           className={inputClass}
         />
       </div>
       <div>
-        <Label>API key</Label>
+        <Label htmlFor={keyId}>API key</Label>
         <input
+          id={keyId}
           type="password"
           autoComplete="off"
+          spellCheck={false}
+          aria-describedby={keyHintId}
           value={form.api_key}
           onChange={(e) => update({ api_key: e.target.value })}
-          placeholder={form.api_key_set ? 'Saved. Leave blank to keep it' : 'Paste your key'}
+          placeholder={form.api_key_set ? '••••••••' : 'sk-…'}
           className={inputClass}
         />
-        <p className="mt-2 text-sm text-subtle">
-          Stored in .env on this machine, never in config.yaml. Not needed for LM Studio.
+        <p id={keyHintId} className="mt-2 text-sm text-subtle">
+          {form.api_key_set ? 'A key is already saved. Leave this blank to keep it. ' : ''}
+          Stored in .env on this machine, never in config.yaml. LM Studio doesn’t need one.
         </p>
       </div>
     </div>
@@ -366,9 +450,16 @@ function AddSource({ onAdd }) {
   const [url, setUrl] = useState('')
   const [group, setGroup] = useState('tech')
   const [state, setState] = useState({ busy: false, error: '' })
+  const urlId = useId()
+  const errorId = useId()
 
   async function submit(e) {
     e.preventDefault()
+    if (state.busy) return
+    if (!url.trim()) {
+      setState({ busy: false, error: 'Paste a feed URL to add it.' })
+      return
+    }
     setState({ busy: true, error: '' })
     try {
       const r = await fetch('/api/feed-check', {
@@ -377,7 +468,7 @@ function AddSource({ onAdd }) {
         body: JSON.stringify({ url: url.trim() }),
       })
       const d = await r.json()
-      if (!d.ok) throw new Error(d.error || "Couldn't add that feed.")
+      if (!d.ok) throw new Error(d.error || 'Couldn’t add that feed. Check the URL and try again.')
       onAdd({ name: d.name, url: d.url }, group)
       setUrl('')
       setState({ busy: false, error: '' })
@@ -387,14 +478,24 @@ function AddSource({ onAdd }) {
   }
 
   return (
-    <form onSubmit={submit} className="mt-8">
+    <form onSubmit={submit} noValidate className="mt-8">
       <h2 className="mb-4 text-xl font-semibold tracking-[-0.01em]">Add your own</h2>
+      <label htmlFor={urlId} className="sr-only">
+        Feed URL
+      </label>
       <div className="flex flex-col gap-2 sm:flex-row">
         <input
+          id={urlId}
+          type="url"
+          spellCheck={false}
           value={url}
-          onChange={(e) => setUrl(e.target.value)}
+          onChange={(e) => {
+            setUrl(e.target.value)
+            if (state.error) setState({ busy: false, error: '' })
+          }}
+          aria-invalid={state.error ? true : undefined}
+          aria-describedby={state.error ? errorId : undefined}
           placeholder="https://example.com/feed.xml"
-          aria-label="Feed URL"
           className={inputClass}
         />
         <select
@@ -406,17 +507,23 @@ function AddSource({ onAdd }) {
           <option value="tech">Technology &amp; AI</option>
           <option value="science">Science</option>
         </select>
-        <button type="submit" disabled={!url.trim() || state.busy} className={`${primaryButton} justify-center`}>
+        <button type="submit" aria-disabled={state.busy || undefined} className={`${primaryButton} justify-center`}>
           {state.busy ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
           Add
         </button>
       </div>
-      {state.error && <p className="mt-2 text-sm text-accent">{state.error}</p>}
+      {state.error && (
+        <p id={errorId} className="mt-2 text-sm text-accent">
+          {state.error}
+        </p>
+      )}
     </form>
   )
 }
 
 function SourcesStep({ form, update, catalog, onAdd }) {
+  const rangeId = useId()
+  const rangeHintId = useId()
   const groups = [
     ['Technology & AI', catalog.tech_feeds],
     ['Science', catalog.science_feeds],
@@ -481,18 +588,26 @@ function SourcesStep({ form, update, catalog, onAdd }) {
 
       <div className="mt-9">
         <div className="mb-3 flex items-baseline justify-between">
-          <h2 className="text-xl font-semibold tracking-[-0.01em]">Stories per issue</h2>
-          <span className="text-xl font-light tabular-nums">{form.max_articles}</span>
+          <label htmlFor={rangeId} className="text-xl font-semibold tracking-[-0.01em]">
+            Stories per issue
+          </label>
+          <output htmlFor={rangeId} className="text-xl tabular-nums">
+            {form.max_articles}
+          </output>
         </div>
         <input
+          id={rangeId}
           type="range"
           min={8}
           max={30}
           value={form.max_articles}
+          aria-describedby={rangeHintId}
           onChange={(e) => update({ max_articles: Number(e.target.value) })}
           className="w-full accent-fg"
         />
-        <p className="mt-2 text-sm text-subtle">More stories means a longer curation run.</p>
+        <p id={rangeHintId} className="mt-2 text-sm text-subtle">
+          More stories means a longer curation run.
+        </p>
       </div>
     </>
   )
@@ -514,7 +629,7 @@ function Done() {
       <motion.span
         initial={{ scale: 0.6, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: 'spring', bounce: 0.4 }}
+        transition={{ type: 'spring', duration: 0.4, bounce: 0 }}
         className="grid size-12 place-items-center rounded-full bg-fg text-surface"
       >
         <Check className="size-6" />
@@ -529,8 +644,21 @@ function Done() {
           aria-label="Copy command"
           className="grid size-9 shrink-0 place-items-center rounded-md text-muted transition-colors hover:bg-inset hover:text-fg"
         >
-          {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+          <AnimatePresence mode="popLayout" initial={false}>
+            <motion.span
+              key={copied ? 'copied' : 'copy'}
+              initial={{ opacity: 0, scale: 0.25, filter: 'blur(4px)' }}
+              animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, scale: 0.25, filter: 'blur(4px)' }}
+              transition={{ type: 'spring', duration: 0.3, bounce: 0 }}
+            >
+              {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+            </motion.span>
+          </AnimatePresence>
         </button>
+        <span role="status" className="sr-only">
+          {copied ? 'Command copied' : ''}
+        </span>
       </div>
       <div className="mt-8 flex justify-end border-t border-line pt-5">
         <Link to="/" className={primaryButton}>
@@ -587,6 +715,7 @@ export default function Onboarding() {
 
   function update(patch) {
     setForm((f) => ({ ...f, ...patch }))
+    setError('')
   }
 
   async function save() {
@@ -604,7 +733,7 @@ export default function Onboarding() {
           custom_feeds: custom.filter((f) => feeds.has(f.url)),
         }),
       })
-      if (!r.ok) throw new Error((await r.json()).error || 'Could not save settings')
+      if (!r.ok) throw new Error((await r.json()).error || 'Couldn’t save your settings. Check that the dev server is running and try again.')
       setStep(3)
     } catch (e) {
       setError(e.message)
@@ -647,6 +776,24 @@ export default function Onboarding() {
     form.provider === 'openai' ? form.api_model.trim() && form.api_base_url.trim() : form.ollama_model.trim(),
     form.feeds.size > 0,
   ][step]
+  const missing = [
+    'Enter your city and country to continue.',
+    form.provider === 'openai'
+      ? 'Enter the API base URL and model ID to continue.'
+      : 'Choose a model, or type its name, to continue.',
+    'Pick at least one source to continue.',
+  ][step]
+
+  function next() {
+    if (saving) return
+    if (!canContinue) {
+      setError(missing)
+      return
+    }
+    setError('')
+    if (step === 2) save()
+    else setStep((s) => s + 1)
+  }
 
   return (
     <div className="mx-auto max-w-xl py-2 md:py-10">
@@ -696,19 +843,16 @@ export default function Onboarding() {
           </motion.div>
         </AnimatePresence>
 
-        {error && <p className="mt-5 text-sm text-accent">{error}</p>}
+        <p role="alert" className="mt-5 text-sm text-accent empty:mt-0">
+          {error}
+        </p>
 
         {step < 3 && (
           <div className="mt-10 flex items-center justify-between gap-4 border-t border-line pt-5">
             <span className="min-w-0 truncate text-[15px] font-semibold">{status_}</span>
-            <button
-              type="button"
-              onClick={step === 2 ? save : () => setStep((s) => s + 1)}
-              disabled={!canContinue || saving}
-              className={primaryButton}
-            >
-              {saving && <Loader2 className="size-4 animate-spin" />}
+            <button type="button" onClick={next} aria-disabled={saving || undefined} className={primaryButton}>
               {step === 2 ? 'Save' : 'Next'}
+              {saving && <Loader2 className="size-4 animate-spin" />}
             </button>
           </div>
         )}

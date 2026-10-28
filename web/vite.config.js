@@ -82,18 +82,18 @@ function decodeEntities(text) {
 
 async function checkFeed(value) {
   const url = cleanUrl(value, null)
-  if (!url) return { ok: false, error: 'Enter an http or https URL.' }
+  if (!url) return { ok: false, error: 'Enter a full feed URL starting with https://.' }
   try {
     const r = await fetch(url, {
       headers: { 'User-Agent': 'Daily4B/0.1 (self-hosted morning paper)' },
       signal: AbortSignal.timeout(8000),
     })
     const text = (await r.text()).slice(0, 1_000_000)
-    if (!r.ok || !/<(rss|feed|rdf:RDF)[\s>]/i.test(text)) return { ok: false, error: "That URL isn't an RSS or Atom feed." }
+    if (!r.ok || !/<(rss|feed|rdf:RDF)[\s>]/i.test(text)) return { ok: false, error: 'That page isn’t a feed. Paste the site’s RSS or Atom link, often ending in /feed or .xml.' }
     const title = text.match(/<title[^>]*>\s*(?:<!\[CDATA\[)?\s*([^<]*?)\s*(?:\]\]>)?\s*<\/title>/i)?.[1]
     return { ok: true, url, name: decodeEntities(title || '').slice(0, 60) || new URL(url).hostname }
   } catch {
-    return { ok: false, error: "Couldn't load that URL." }
+    return { ok: false, error: 'Couldn’t load that URL. Check the address and try again.' }
   }
 }
 
