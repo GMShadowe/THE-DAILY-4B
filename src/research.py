@@ -1,6 +1,11 @@
-import time
 import urllib.parse
+from concurrent.futures import ThreadPoolExecutor
+
 import feedparser
+import requests
+
+USER_AGENT = "Mozilla/5.0 (compatible; Daily4B/0.1)"
+TIMEOUT = 10
 
 
 def _extract_image(entry):
@@ -14,14 +19,9 @@ def _extract_image(entry):
     return None
 
 
-def _fetch_feed(url, source, category, limit=6):
+def parse_feed(content, source, category, limit=6):
     items = []
-    try:
-        parsed = feedparser.parse(url)
-    except Exception:
-        return items
-
-    for entry in parsed.entries[:limit]:
+    for entry in feedparser.parse(content).entries[:limit]:
         items.append({
             "title": entry.get("title", "").strip(),
             "link": entry.get("link", ""),
@@ -34,37 +34,44 @@ def _fetch_feed(url, source, category, limit=6):
     return items
 
 
-def google_news_rss(query, category, limit=6):
+def fetch_feed(url, source, category):
+    try:
+        response = requests.get(url, timeout=TIMEOUT, headers={"User-Agent": USER_AGENT})
+        response.raise_for_status()
+    except requests.RequestException as e:
+        print(f"  skipped {source} ({e.__class__.__name__})")
+        return []
+    return parse_feed(response.content, source, category)
+
+
+def google_news_url(query):
     q = urllib.parse.quote(f"{query} when:1d")
-    url = f"https://news.google.com/rss/search?q={q}&hl=en-US&gl=US&ceid=US:en"
-    return _fetch_feed(url, f"Google News ({query})", category, limit=limit)
+    return f"https://news.google.com/rss/search?q={q}&hl=en-US&gl=US&ceid=US:en"
+
+
+def sources(config):
+    jobs = [(f["url"], f["name"], "tech") for f in config.get("tech_feeds") or []]
+    jobs += [(f["url"], f["name"], "science") for f in config.get("science_feeds") or []]
+    for key, category in (("city", "local"), ("country", "country")):
+        place = config.get(key)
+        if place:
+            jobs.append((google_news_url(place), f"Google News ({place})", category))
+    return jobs
+
+
+def dedupe(items):
+    seen = set()
+    result = []
+    for item in items:
+        key = item["link"] or item["title"]
+        if not item["title"] or key in seen:
+            continue
+        seen.add(key)
+        result.append(item)
+    return result
 
 
 def gather(config):
-    pool = []
-
-    for feed in config.get("tech_feeds", []):
-        pool += _fetch_feed(feed["url"], feed["name"], "tech")
-        time.sleep(0.2)
-
-    for feed in config.get("science_feeds", []):
-        pool += _fetch_feed(feed["url"], feed["name"], "science")
-        time.sleep(0.2)
-
-    city = config.get("city")
-    country = config.get("country")
-    if city:
-        pool += google_news_rss(city, "local")
-    if country:
-        pool += google_news_rss(country, "country")
-
-    seen = set()
-    deduped = []
-    for item in pool:
-        key = item["link"] or item["title"]
-        if key in seen or not item["title"]:
-            continue
-        seen.add(key)
-        deduped.append(item)
-
-    return deduped
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        results = executor.map(lambda job: fetch_feed(*job), sources(config))
+    return dedupe([item for items in results for item in items])
