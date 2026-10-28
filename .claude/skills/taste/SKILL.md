@@ -41,8 +41,9 @@ What has been asked for, and so what every change must respect.
 | paper (cell) | `#F4F0E6` | lighter than the page so the bento reads; Tablet cells sit on the page color |
 | ink | `#1B1A17` | Tablet / Monster body text |
 | ink muted | `#5E5A52` | Tablet dek text |
-| ink faint | `#8E887C` | bylines, captions |
-| rule | `#CDC4B2`, 1px | Tablet cell borders |
+| ink faint | `#6B655A` | bylines, captions. Darkened from `#8E887C`, which measured 3.1–3.5:1; this clears 4.5:1 on page and cell paper |
+| rule | `#CDC4B2`, 1px | Tablet cell borders. Decorative structure only |
+| control edge | `#857F72`, 1px | Form input borders, which need 3:1 against both paper tones (3.14 and 3.50:1) |
 | accent | `#C2401F` | Tablet red labels, stat boxes, duotones ≈ `#E0533D`; unroot orange ≈ `#F2602A` (`ea6d2485`, `3dc90763`). Darkened from `#D9482B` so 10–11px labels clear 4.5:1 on cell paper |
 | accent soft | `#F6D8C8` | unroot peach tile (`3dc90763`) |
 | radius, cells | 0 | both newspapers (`ea6d2485`, `61d27d0e`); the unroot bento's 16px radius is outvoted |
@@ -99,3 +100,4 @@ _Nothing on the board yet._
 
 - 2026-10-29: first board read (8 references). Rules above written from it.
 - 2026-10-29: whole app rebuilt to these rules: Outfit + Newsreader, paper/ink/red tokens, ruled square cells, masthead with issue number and city/weather sides, tagline "All the news a 4B model sees fit to print", red-boxed weather stat, ink brief cell, grayscale photos (color on hover), section tabs with a red underline, Airbnb-style onboarding.
+- 2026-10-29: interface pass with the better-* skills. Ink faint darkened and a control edge token added for contrast, inputs at 16px, springs at bounce 0, a 1px black/10 outline on photos. The look is unchanged; these are correctness fixes, not taste changes.
