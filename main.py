@@ -1,5 +1,7 @@
 import argparse
 import sys
+import time
+from datetime import datetime, timedelta
 
 import requests
 
@@ -62,12 +64,46 @@ def run(config_path, dry_run=False):
     step(f"printed the {issue['date']} issue to data/latest.json")
 
 
+def clock(value):
+    try:
+        datetime.strptime(value, "%H:%M")
+    except ValueError:
+        raise argparse.ArgumentTypeError("use 24-hour HH:MM, like 06:00")
+    return value
+
+
+def seconds_until(at, now=None):
+    now = now or datetime.now()
+    hour, minute = map(int, at.split(":"))
+    target = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    if target <= now:
+        target += timedelta(days=1)
+    return (target - now).total_seconds()
+
+
+def daily(config_path, at):
+    while True:
+        wait = seconds_until(at)
+        step(f"next issue at {at}, {wait / 3600:.1f}h from now")
+        time.sleep(wait)
+        try:
+            run(config_path)
+        except SystemExit:
+            pass
+        except Exception as e:
+            print(f"this morning's run failed: {e}")
+
+
 def main():
     parser = argparse.ArgumentParser(description="generate today's newspaper")
     parser.add_argument("--now", action="store_true", help="run the full pipeline once")
     parser.add_argument("--dry-run", action="store_true", help="check config, weather and feeds without the model")
+    parser.add_argument("--daily", type=clock, metavar="HH:MM", help="stay running and print every day at this time")
     parser.add_argument("--config", default=settings.ROOT / "config.yaml", help="path to config.yaml")
     args = parser.parse_args()
+
+    if args.daily:
+        daily(args.config, args.daily)
 
     if not (args.now or args.dry_run):
         print("nothing to do. run with --now to generate today's issue, or --dry-run to test your setup.")
