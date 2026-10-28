@@ -1,3 +1,4 @@
+import { createElement } from 'react'
 import { motion } from 'framer-motion'
 import {
   Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudRain, CloudSnow, CloudSun, Sun, Thermometer,
@@ -19,8 +20,6 @@ function iconFor(code) {
 export default function WeatherTile({ weather }) {
   if (!weather) return null
 
-  const Icon = iconFor(weather.code)
-
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -31,7 +30,7 @@ export default function WeatherTile({ weather }) {
       <div className="flex size-full flex-col border border-accent p-5 text-center">
         <p className={`${labelClass} text-accent`}>Weather &middot; {weather.city}</p>
         <div className="flex flex-1 flex-col items-center justify-center">
-          <Icon className="size-9 text-accent" strokeWidth={1.25} />
+          {createElement(iconFor(weather.code), { className: 'size-9 text-accent', strokeWidth: 1.25 })}
           <p className="mt-1 font-sans text-[96px] font-light leading-none tracking-[-0.05em] text-accent md:text-[120px]">
             {Math.round(weather.temperature)}&deg;
           </p>

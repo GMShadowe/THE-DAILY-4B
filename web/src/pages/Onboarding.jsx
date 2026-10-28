@@ -259,7 +259,10 @@ function SourcesStep({ form, update, catalog }) {
 
   function toggle(urls, on) {
     const next = new Set(form.feeds)
-    for (const url of urls) (on ? next.add(url) : next.delete(url))
+    for (const url of urls) {
+      if (on) next.add(url)
+      else next.delete(url)
+    }
     update({ feeds: next })
   }
 
