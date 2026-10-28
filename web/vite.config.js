@@ -65,6 +65,38 @@ function oneOf(value, options, fallback) {
   return options.includes(value) ? value : fallback
 }
 
+function cleanFeed(feed) {
+  const name = cleanString(feed?.name, null)
+  const url = cleanUrl(feed?.url, null)
+  return name && url ? { name: name.slice(0, 60), url } : null
+}
+
+function decodeEntities(text) {
+  return text
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#0?39;|&apos;/g, "'")
+}
+
+async function checkFeed(value) {
+  const url = cleanUrl(value, null)
+  if (!url) return { ok: false, error: 'Enter an http or https URL.' }
+  try {
+    const r = await fetch(url, {
+      headers: { 'User-Agent': 'Daily4B/0.1 (self-hosted morning paper)' },
+      signal: AbortSignal.timeout(8000),
+    })
+    const text = (await r.text()).slice(0, 1_000_000)
+    if (!r.ok || !/<(rss|feed|rdf:RDF)[\s>]/i.test(text)) return { ok: false, error: "That URL isn't an RSS or Atom feed." }
+    const title = text.match(/<title[^>]*>\s*(?:<!\[CDATA\[)?\s*([^<]*?)\s*(?:\]\]>)?\s*<\/title>/i)?.[1]
+    return { ok: true, url, name: decodeEntities(title || '').slice(0, 60) || new URL(url).hostname }
+  } catch {
+    return { ok: false, error: "Couldn't load that URL." }
+  }
+}
+
 function readBody(req) {
   return new Promise((resolve, reject) => {
     let data = ''
@@ -106,6 +138,8 @@ async function handle(req, res) {
   if (pathname === '/api/config' && req.method === 'POST') {
     const body = await readBody(req)
     const pick = (list, urls) => list.filter((f) => Array.isArray(urls) && urls.includes(f.url))
+    const custom = Array.isArray(body.custom_feeds) ? body.custom_feeds.slice(0, 50) : []
+    const added = (group) => custom.filter((f) => f?.group === group).map(cleanFeed).filter(Boolean)
     const next = {
       city: cleanString(body.city, base.city),
       country: cleanString(body.country, base.country),
@@ -116,13 +150,18 @@ async function handle(req, res) {
       api_base_url: cleanUrl(body.api_base_url, base.api_base_url || defaultApiBase),
       api_model: typeof body.api_model === 'string' ? body.api_model.trim().slice(0, 200) : base.api_model || '',
       max_articles: Math.min(30, Math.max(6, parseInt(body.max_articles, 10) || base.max_articles || 18)),
-      tech_feeds: pick(catalog.tech_feeds, body.tech_feeds),
-      science_feeds: pick(catalog.science_feeds, body.science_feeds),
+      tech_feeds: uniqueFeeds(pick(catalog.tech_feeds, body.tech_feeds), added('tech')),
+      science_feeds: uniqueFeeds(pick(catalog.science_feeds, body.science_feeds), added('science')),
     }
     for (const [key, value] of Object.entries(base)) if (!(key in next)) next[key] = value
     if (typeof body.api_key === 'string' && body.api_key.trim()) saveApiKey(body.api_key.slice(0, 500))
     fs.writeFileSync(configPath, stringify(next))
     return send(res, 200, { ok: true, config: next, api_key_set: hasApiKey() })
+  }
+
+  if (pathname === '/api/feed-check' && req.method === 'POST') {
+    const body = await readBody(req)
+    return send(res, 200, await checkFeed(body.url))
   }
 
   if (pathname === '/api/models' && req.method === 'GET') {
