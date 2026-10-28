@@ -22,12 +22,16 @@ def _extract_image(entry):
 def parse_feed(content, source, category, limit=6):
     items = []
     for entry in feedparser.parse(content).entries[:limit]:
+        title = entry.get("title", "").strip()
+        publisher = (entry.get("source") or {}).get("title")
+        if publisher and title.endswith(f" - {publisher}"):
+            title = title[: -len(publisher) - 3]
         items.append({
-            "title": entry.get("title", "").strip(),
+            "title": title,
             "link": entry.get("link", ""),
             "summary": (entry.get("summary", "") or "")[:600],
             "image": _extract_image(entry),
-            "source": source,
+            "source": publisher or source,
             "category": category,
             "published": entry.get("published", ""),
         })
