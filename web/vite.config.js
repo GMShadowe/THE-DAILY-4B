@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
@@ -7,6 +8,7 @@ import { parse, stringify } from 'yaml'
 
 const configPath = fileURLToPath(new URL('../config.yaml', import.meta.url))
 const examplePath = fileURLToPath(new URL('../config.example.yaml', import.meta.url))
+const dataDir = fileURLToPath(new URL('../data/', import.meta.url))
 const defaultHost = 'http://localhost:11434'
 
 function readYaml(file) {
@@ -121,6 +123,30 @@ function configApi() {
   }
 }
 
+function serveData(req, res, next) {
+  const { pathname } = new URL(req.url, 'http://localhost')
+  if (!pathname.startsWith('/data/')) return next()
+  const file = path.resolve(dataDir, decodeURIComponent(pathname.slice('/data/'.length)))
+  if (!file.startsWith(dataDir) || !file.endsWith('.json') || !fs.statSync(file, { throwIfNoEntry: false })?.isFile()) {
+    return send(res, 404, { error: 'Not found' })
+  }
+  res.setHeader('Content-Type', 'application/json')
+  res.setHeader('Cache-Control', 'no-store')
+  fs.createReadStream(file).pipe(res)
+}
+
+function issueData() {
+  return {
+    name: 'issue-data',
+    configureServer(server) {
+      server.middlewares.use(serveData)
+    },
+    configurePreviewServer(server) {
+      server.middlewares.use(serveData)
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [react(), tailwindcss(), configApi()],
+  plugins: [react(), tailwindcss(), issueData(), configApi()],
 })

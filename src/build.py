@@ -4,8 +4,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from src import llm
+from src.config import ROOT
 
-DATA_DIR = Path(__file__).resolve().parent.parent / "web" / "public" / "data"
+DATA_DIR = ROOT / "data"
 ARCHIVE_DIR = DATA_DIR / "archive"
 LATEST_PATH = DATA_DIR / "latest.json"
 INDEX_PATH = ARCHIVE_DIR / "index.json"

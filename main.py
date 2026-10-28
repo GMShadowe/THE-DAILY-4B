@@ -29,7 +29,7 @@ def run(config_path):
     print(f"kept {len(curated.get('articles', []))} articles")
 
     issue = build.write_issue(curated, config, weather_data)
-    print(f"wrote issue for {issue['date']} -> web/public/data/latest.json")
+    print(f"wrote issue for {issue['date']} -> data/latest.json")
 
 
 def main():
