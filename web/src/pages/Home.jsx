@@ -12,7 +12,7 @@ export default function Home() {
   useEffect(() => {
     fetch('/api/config')
       .then((r) => r.json())
-      .then((d) => !d.exists && navigate('/setup', { replace: true }))
+      .then((d) => d.exists === false && navigate('/setup', { replace: true }))
       .catch(() => {})
   }, [navigate])
 

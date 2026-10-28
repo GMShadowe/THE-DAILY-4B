@@ -107,9 +107,22 @@ async function handle(req, res) {
   return send(res, 404, { error: 'Not found' })
 }
 
+const loopback = ['127.0.0.1', '::1', '::ffff:127.0.0.1']
+
+function rejection(req) {
+  if (!loopback.includes(req.socket.remoteAddress)) return 'Settings can only be changed on the machine running the server.'
+  if (req.method === 'GET') return null
+  if (!(req.headers['content-type'] || '').startsWith('application/json')) return 'Expected JSON.'
+  const origin = req.headers.origin
+  if (origin && new URL(origin).host !== req.headers.host) return 'Cross-site requests are not allowed.'
+  return null
+}
+
 function configApi() {
   const middleware = (req, res, next) => {
     if (!req.url.startsWith('/api/')) return next()
+    const reason = rejection(req)
+    if (reason) return send(res, 403, { error: reason })
     handle(req, res).catch((e) => send(res, 400, { error: e.message }))
   }
   return {
