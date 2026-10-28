@@ -1,5 +1,4 @@
-import json
-import requests
+from src import llm
 
 SYSTEM_PROMPT = """You are the editor-in-chief of a daily morning newspaper.
 You will be given a numbered pool of candidate articles (tech, science, local, and
@@ -67,28 +66,7 @@ def _build_prompt(pool, max_articles):
 
 def curate(pool, config):
     prompt = _build_prompt(pool, config.get("max_articles", 18))
-
-    response = requests.post(
-        f"{config['ollama_host']}/api/generate",
-        json={
-            "model": config.get("ollama_model", "qwen3.5:4b"),
-            "prompt": prompt,
-            "format": RESPONSE_SCHEMA,
-            "stream": False,
-            "think": False,
-            "options": {"num_ctx": 32768, "num_predict": 8192},
-        },
-        timeout=300,
-    )
-    response.raise_for_status()
-    raw = response.json()["response"]
-
-    try:
-        data = json.loads(raw)
-    except json.JSONDecodeError:
-        start = raw.find("{")
-        end = raw.rfind("}")
-        data = json.loads(raw[start:end + 1])
+    data = llm.complete_json(prompt, RESPONSE_SCHEMA, config)
 
     articles = []
     seen = set()

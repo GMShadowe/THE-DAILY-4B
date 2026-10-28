@@ -1,7 +1,7 @@
 import argparse
 import sys
 
-from src import build, curate, research, weather
+from src import build, curate, llm, research, weather
 from src import config as settings
 
 
@@ -20,8 +20,12 @@ def run(config_path):
     pool = research.gather(config)
     print(f"found {len(pool)} candidate articles")
 
-    print("curating with local model...")
-    curated = curate.curate(pool, config)
+    print(f"curating with {llm.model_name(config)}...")
+    try:
+        curated = curate.curate(pool, config)
+    except llm.LLMError as e:
+        print(e)
+        sys.exit(1)
     print(f"kept {len(curated.get('articles', []))} articles")
 
     issue = build.write_issue(curated, config, weather_data)

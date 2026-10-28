@@ -3,6 +3,8 @@ import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 
+from src import llm
+
 DATA_DIR = Path(__file__).resolve().parent.parent / "web" / "public" / "data"
 ARCHIVE_DIR = DATA_DIR / "archive"
 LATEST_PATH = DATA_DIR / "latest.json"
@@ -20,7 +22,7 @@ def write_issue(curated, config, weather_data=None):
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "city": config.get("city"),
         "country": config.get("country"),
-        "model": config.get("ollama_model"),
+        "model": llm.model_name(config),
         "headline": curated.get("headline", ""),
         "digest": curated.get("digest", ""),
         "weather": weather_data,
