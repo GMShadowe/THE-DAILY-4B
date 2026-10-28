@@ -10,3 +10,5 @@ web/dist/
 data/
 
 .env
+
+.pytest_cache/
