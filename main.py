@@ -1,8 +1,14 @@
 import argparse
 import sys
 
+import requests
+
 from src import build, curate, images, llm, research, weather
 from src import config as settings
+
+
+def step(message):
+    print(f"→ {message}", flush=True)
 
 
 def run(config_path):
@@ -13,27 +19,34 @@ def run(config_path):
         print(e)
         sys.exit(1)
 
-    print("checking weather...")
-    weather_data = weather.fetch(config["city"], config["country"], config["units"])
+    step(f"checking the weather in {config['city']}")
+    try:
+        weather_data = weather.fetch(config["city"], config["country"], config["units"])
+    except requests.RequestException as e:
+        print(f"  weather unavailable ({e.__class__.__name__}), printing without it")
+        weather_data = None
 
-    print("researching...")
+    step("researching")
     seen = build.recent_links()
     pool = research.gather(config, exclude=seen)
-    print(f"found {len(pool)} candidate articles ({len(seen)} recent stories skipped)")
+    print(f"  {len(pool)} candidate stories, {len(seen)} recent ones skipped")
+    if not pool:
+        print("no stories found. check your internet connection and feeds.")
+        sys.exit(1)
 
-    print(f"curating with {llm.model_name(config)}...")
+    step(f"curating with {llm.model_name(config)}")
     try:
         curated = curate.curate(pool, config)
     except llm.LLMError as e:
         print(e)
         sys.exit(1)
-    print(f"kept {len(curated.get('articles', []))} articles")
+    print(f"  kept {len(curated['articles'])} stories")
 
-    print("finding photos...")
-    print(f"found {images.enrich(curated['articles'])} more photos")
+    step("finding photos")
+    print(f"  found {images.enrich(curated['articles'])} more")
 
     issue = build.write_issue(curated, config, weather_data)
-    print(f"wrote issue for {issue['date']} -> data/latest.json")
+    step(f"printed the {issue['date']} issue to data/latest.json")
 
 
 def main():
