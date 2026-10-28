@@ -11,22 +11,25 @@ WEATHER_CODES = {
 }
 
 
-def _geocode(city):
+def pick_place(results, country):
+    wanted = (country or "").strip().lower()
+    match = next((p for p in results if wanted and p.get("country", "").lower() == wanted), None)
+    return match or (results[0] if results else None)
+
+
+def _geocode(city, country):
     r = requests.get(
         "https://geocoding-api.open-meteo.com/v1/search",
-        params={"name": city, "count": 1},
+        params={"name": city, "count": 10},
         timeout=15,
     )
     r.raise_for_status()
-    results = r.json().get("results") or []
-    if not results:
-        return None
-    place = results[0]
-    return place["latitude"], place["longitude"]
+    place = pick_place(r.json().get("results") or [], country)
+    return (place["latitude"], place["longitude"]) if place else None
 
 
 def fetch(city, country):
-    coords = _geocode(city)
+    coords = _geocode(city, country)
     if not coords:
         return None
     lat, lon = coords
