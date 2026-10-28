@@ -26,7 +26,12 @@ export default function ArchiveIssue() {
         Archive
       </Link>
       {missing ? (
-        <p className="mt-16 text-center text-muted">Issue not found.</p>
+        <p className="mt-16 text-center text-muted">
+          There’s no issue for this date.{' '}
+          <Link to="/archive" className="text-fg underline underline-offset-4">
+            Browse the archive
+          </Link>
+        </p>
       ) : issue ? (
         <Issue issue={issue} archived />
       ) : (
