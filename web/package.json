@@ -1,7 +1,7 @@
 {
-  "name": "web",
+  "name": "daily-4b-web",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,7 +13,8 @@
     "framer-motion": "^14.7.1",
     "lucide-react": "^1.63.0",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "react-router-dom": "^7.18.5"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
@@ -21,7 +22,6 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
     "oxlint": "^1.89.0",
-    "react-router-dom": "^7.18.5",
     "tailwindcss": "^4.3.3",
     "vite": "^8.3.5",
     "yaml": "^2.9.1"
