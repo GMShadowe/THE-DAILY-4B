@@ -11,3 +11,10 @@ First public release.
 - Finds preview images for stories that lack one, and skips stories from the last three issues.
 - `--now`, `--dry-run`, `--daily HH:MM` and `--config` on the command line.
 - Docker compose for self-hosting, `make` shortcuts, tests and CI.
+- Accessible by keyboard and screen reader: labelled forms, a keyboard-operable city search, a native dialog for the reader view, headline buttons on story tiles in visual reading order, a skip link, page titles, and text and controls that meet WCAG 2.2 AA contrast.
+- The curator is asked to cover every section, so one topic no longer fills the paper.
+
+### Known limitations
+
+- Small models still lean toward tech stories on busy news days.
+- The Docker setup is new and has had little real-world testing.
