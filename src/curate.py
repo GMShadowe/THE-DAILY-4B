@@ -62,8 +62,10 @@ def _build_prompt(pool, max_articles):
     return (
         f"{SYSTEM_PROMPT}\n\n"
         f"Select exactly {max_articles} articles from the pool below (there are plenty of "
-        f"good ones, so do not return fewer), covering a good mix of categories. Prefer "
-        f"articles with has_image: True when quality is similar.\n\n"
+        f"good ones, so do not return fewer). Cover every section: pick at least 2 from each "
+        f"of {', '.join(sorted({item['category'] for item in pool}))} where the pool has them, "
+        f"and never let one section fill more than half of the issue. Prefer articles with "
+        f"has_image: True when quality is similar.\n\n"
         f"CANDIDATE POOL:\n{pool_text}"
     )
 

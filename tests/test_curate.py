@@ -40,3 +40,9 @@ def test_prompt_numbers_every_candidate():
 
     assert "[3] category=tech" in prompt
     assert "Select exactly 2" in prompt
+
+
+def test_prompt_asks_for_every_section():
+    pool = POOL + [{**POOL[0], "category": "science"}, {**POOL[0], "category": "local"}]
+
+    assert "each of local, science, tech" in curate._build_prompt(pool, 6)
