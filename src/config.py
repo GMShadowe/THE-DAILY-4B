@@ -14,7 +14,7 @@ DEFAULTS = {
     "ollama_model": "qwen3.5:4b",
     "api_base_url": "https://api.openai.com/v1",
     "api_model": "",
-    "max_articles": 18,
+    "max_articles": 24,
     "feeds": {},
 }
 
