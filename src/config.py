@@ -15,8 +15,7 @@ DEFAULTS = {
     "api_base_url": "https://api.openai.com/v1",
     "api_model": "",
     "max_articles": 18,
-    "tech_feeds": [],
-    "science_feeds": [],
+    "feeds": {},
 }
 
 ENV_OVERRIDES = {"DAILY4B_OLLAMA_HOST": "ollama_host"}
@@ -64,5 +63,8 @@ def validate(config):
         raise ConfigError("set `api_model` when `provider` is `openai`")
     if config["units"] not in ("celsius", "fahrenheit"):
         raise ConfigError("`units` must be `celsius` or `fahrenheit`")
-    if not (config["tech_feeds"] or config["science_feeds"]):
-        raise ConfigError("add at least one feed to `tech_feeds` or `science_feeds`")
+    feeds = config["feeds"]
+    if not isinstance(feeds, dict) or not all(isinstance(v, list) for v in feeds.values()):
+        raise ConfigError("`feeds` must map each section to a list of {name, url} feeds")
+    if not any(feeds.values()):
+        raise ConfigError("add at least one feed under `feeds`")

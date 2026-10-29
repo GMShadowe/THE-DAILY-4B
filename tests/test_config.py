@@ -4,7 +4,7 @@ import pytest
 
 from src import config as settings
 
-FEEDS = "tech_feeds:\n  - name: A\n    url: https://a.example/rss\n"
+FEEDS = "feeds:\n  tech:\n    - name: A\n      url: https://a.example/rss\n"
 
 
 @pytest.fixture(autouse=True)
@@ -40,6 +40,11 @@ def test_rejects_invalid_settings(tmp_path, extra):
 def test_requires_a_feed(tmp_path):
     with pytest.raises(settings.ConfigError, match="feed"):
         settings.load(write(tmp_path, "city: Pune\n"))
+
+
+def test_rejects_feeds_that_are_not_grouped_by_section(tmp_path):
+    with pytest.raises(settings.ConfigError, match="section"):
+        settings.load(write(tmp_path, "city: Pune\nfeeds:\n  - name: A\n    url: https://a.example/rss\n"))
 
 
 def test_reads_the_key_and_overrides_from_env_file(tmp_path):

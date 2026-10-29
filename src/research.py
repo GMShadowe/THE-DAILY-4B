@@ -6,6 +6,7 @@ import requests
 
 USER_AGENT = "Daily4B/0.1 (self-hosted morning paper)"
 TIMEOUT = 10
+MAX_POOL = 120
 
 
 def _extract_image(entry):
@@ -38,14 +39,14 @@ def parse_feed(content, source, category, limit=6):
     return items
 
 
-def fetch_feed(url, source, category):
+def fetch_feed(url, source, category, limit=6):
     try:
         response = requests.get(url, timeout=TIMEOUT, headers={"User-Agent": USER_AGENT})
         response.raise_for_status()
     except requests.RequestException as e:
         print(f"  skipped {source} ({e.__class__.__name__})")
         return []
-    return parse_feed(response.content, source, category)
+    return parse_feed(response.content, source, category, limit)
 
 
 def google_news_url(query):
@@ -54,8 +55,11 @@ def google_news_url(query):
 
 
 def sources(config):
-    jobs = [(f["url"], f["name"], "tech") for f in config.get("tech_feeds") or []]
-    jobs += [(f["url"], f["name"], "science") for f in config.get("science_feeds") or []]
+    jobs = [
+        (feed["url"], feed["name"], section)
+        for section, feeds in (config.get("feeds") or {}).items()
+        for feed in feeds or []
+    ]
     for key, category in (("city", "local"), ("country", "country")):
         place = config.get(key)
         if place:
@@ -75,7 +79,13 @@ def dedupe(items, exclude=()):
     return result
 
 
+def per_feed_limit(count):
+    return max(3, min(6, MAX_POOL // max(count, 1)))
+
+
 def gather(config, exclude=()):
+    jobs = sources(config)
+    limit = per_feed_limit(len(jobs))
     with ThreadPoolExecutor(max_workers=8) as executor:
-        results = executor.map(lambda job: fetch_feed(*job), sources(config))
+        results = executor.map(lambda job: fetch_feed(*job, limit), jobs)
     return dedupe([item for items in results for item in items], exclude)

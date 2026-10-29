@@ -41,11 +41,20 @@ def test_dedupe_drops_repeats_untitled_and_excluded_stories():
 
 def test_sources_add_city_and_country_news():
     jobs = research.sources({
-        "tech_feeds": [{"name": "A", "url": "https://a.example/rss"}],
-        "science_feeds": [],
+        "feeds": {
+            "world": [{"name": "A", "url": "https://a.example/rss"}],
+            "sports": [{"name": "B", "url": "https://b.example/rss"}],
+            "science": [],
+        },
         "city": "Pune",
         "country": "India",
     })
 
-    assert [job[2] for job in jobs] == ["tech", "local", "country"]
-    assert "Pune" in jobs[1][0]
+    assert [job[2] for job in jobs] == ["world", "sports", "local", "country"]
+    assert "Pune" in jobs[2][0]
+
+
+def test_per_feed_limit_keeps_the_pool_small():
+    assert research.per_feed_limit(10) == 6
+    assert research.per_feed_limit(30) == 4
+    assert research.per_feed_limit(100) == 3
