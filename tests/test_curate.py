@@ -46,3 +46,12 @@ def test_prompt_asks_for_every_section():
     pool = POOL + [{**POOL[0], "category": "science"}, {**POOL[0], "category": "local"}]
 
     assert "each of local, science, tech" in curate._build_prompt(pool, 6)
+
+
+def test_prompt_caps_each_section_when_there_are_many():
+    pool = [{**POOL[0], "category": c} for c in ("world", "business", "tech", "science", "sports")]
+
+    prompt = curate._build_prompt(pool, 6)
+
+    assert "at least 1 from each of business, science, sports, tech, world" in prompt
+    assert "more than a third" in prompt

@@ -1,11 +1,11 @@
 from src import llm
 
 SYSTEM_PROMPT = """You are the editor-in-chief of a daily morning newspaper.
-You will be given a numbered pool of candidate articles (tech, science, local, and
-country news). Pick only the best, most important and most applicable stories. Skip
-anything minor, duplicate, clickbait, or low quality. For local/country news, only keep
-genuinely major stories (politics, disasters, big economic/tech news) - skip routine
-local items.
+You will be given a numbered pool of candidate articles from several sections, such as
+world, business, tech, science, culture, local and national news. Pick only the best,
+most important and most applicable stories. Skip anything minor, duplicate, clickbait,
+or low quality. For local/country news, only keep genuinely major stories (politics,
+disasters, big economic/tech news) - skip routine local items.
 
 For each article you keep, write a thorough 2-4 sentence summary in your own words
 (60-90 words) that covers what actually happened and why it matters, so a reader never
@@ -59,13 +59,16 @@ def _build_prompt(pool, max_articles):
             f"has_image: {bool(item['image'])}\n"
         )
     pool_text = "\n".join(lines)
+    sections = sorted({item["category"] for item in pool})
+    each = 2 if max_articles >= 2 * len(sections) else 1
+    cap = "a third" if len(sections) >= 4 else "half"
     return (
         f"{SYSTEM_PROMPT}\n\n"
         f"Select exactly {max_articles} articles from the pool below (there are plenty of "
-        f"good ones, so do not return fewer). Cover every section: pick at least 2 from each "
-        f"of {', '.join(sorted({item['category'] for item in pool}))} where the pool has them, "
-        f"and never let one section fill more than half of the issue. Prefer articles with "
-        f"has_image: True when quality is similar.\n\n"
+        f"good ones, so do not return fewer). Cover every section: pick at least {each} from "
+        f"each of {', '.join(sections)} where the pool has a worthwhile story, and never let "
+        f"one section fill more than {cap} of the issue. Prefer articles with has_image: True "
+        f"when quality is similar.\n\n"
         f"CANDIDATE POOL:\n{pool_text}"
     )
 
