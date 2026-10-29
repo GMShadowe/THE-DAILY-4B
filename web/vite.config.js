@@ -13,6 +13,7 @@ const envPath = fileURLToPath(new URL('../.env', import.meta.url))
 const defaultHost = 'http://localhost:11434'
 const defaultApiBase = 'https://api.openai.com/v1'
 const keyLine = /^DAILY4B_API_KEY=.*$/m
+const sectionKey = /^[a-z][a-z0-9_-]{0,30}$/
 
 function readEnv() {
   return fs.existsSync(envPath) ? fs.readFileSync(envPath, 'utf8') : ''
@@ -125,10 +126,10 @@ async function handle(req, res) {
   const example = readYaml(examplePath) || {}
   const current = readYaml(configPath)
   const base = current || example
-  const catalog = {
-    tech_feeds: uniqueFeeds(example.tech_feeds || [], base.tech_feeds || []),
-    science_feeds: uniqueFeeds(example.science_feeds || [], base.science_feeds || []),
-  }
+  const sections = [...new Set([...Object.keys(example.feeds || {}), ...Object.keys(base.feeds || {})])]
+  const catalog = Object.fromEntries(
+    sections.map((section) => [section, uniqueFeeds(example.feeds?.[section] || [], base.feeds?.[section] || [])]),
+  )
   const { pathname, searchParams } = new URL(req.url, 'http://localhost')
 
   if (pathname === '/api/config' && req.method === 'GET') {
@@ -140,6 +141,13 @@ async function handle(req, res) {
     const pick = (list, urls) => list.filter((f) => Array.isArray(urls) && urls.includes(f.url))
     const custom = Array.isArray(body.custom_feeds) ? body.custom_feeds.slice(0, 50) : []
     const added = (group) => custom.filter((f) => f?.group === group).map(cleanFeed).filter(Boolean)
+    const chosen = body.feeds && typeof body.feeds === 'object' ? body.feeds : {}
+    const customSections = custom.map((f) => f?.group).filter((g) => typeof g === 'string' && sectionKey.test(g))
+    const feeds = {}
+    for (const section of new Set([...sections, ...customSections])) {
+      const list = uniqueFeeds(pick(catalog[section] || [], chosen[section]), added(section))
+      if (list.length) feeds[section] = list
+    }
     const next = {
       city: cleanString(body.city, base.city),
       country: cleanString(body.country, base.country),
@@ -150,8 +158,7 @@ async function handle(req, res) {
       api_base_url: cleanUrl(body.api_base_url, base.api_base_url || defaultApiBase),
       api_model: typeof body.api_model === 'string' ? body.api_model.trim().slice(0, 200) : base.api_model || '',
       max_articles: Math.min(30, Math.max(6, parseInt(body.max_articles, 10) || base.max_articles || 18)),
-      tech_feeds: uniqueFeeds(pick(catalog.tech_feeds, body.tech_feeds), added('tech')),
-      science_feeds: uniqueFeeds(pick(catalog.science_feeds, body.science_feeds), added('science')),
+      feeds,
     }
     for (const [key, value] of Object.entries(base)) if (!(key in next)) next[key] = value
     if (typeof body.api_key === 'string' && body.api_key.trim()) saveApiKey(body.api_key.slice(0, 500))
