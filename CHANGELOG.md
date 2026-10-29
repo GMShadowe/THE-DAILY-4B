@@ -17,4 +17,5 @@ First public release.
 ### Known limitations
 
 - Small models still lean toward tech stories, partly because tech has the most default feeds.
+- Summaries and the daily brief are written by a small model and can get details wrong. Every story links to its source.
 - The Docker setup is new and has had little real-world testing.
