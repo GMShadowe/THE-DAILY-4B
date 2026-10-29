@@ -14,7 +14,7 @@ A self-hosted morning newspaper. Before you wake up, it reads the tech blogs, AI
 
 ## Quickstart
 
-You need Python 3.10+, Node 20.19+ and [Ollama](https://ollama.com) (or an API key, see below). Clone the repo, then from its folder:
+You need Python 3.12+, Node 20.19+ and [Ollama](https://ollama.com) (or an API key, see below). Clone the repo, then from its folder:
 
 ```bash
 make setup                # python venv, dependencies, web dependencies
@@ -157,8 +157,8 @@ Settings can only be changed from the machine running the server. On a server or
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). The design rules live in `.claude/skills/taste/`, built with [build-taste](https://github.com/anishfn/build-taste) by Anish.
+See [CONTRIBUTING.md](CONTRIBUTING.md). The design rules live in `.claude/skills/taste/`, built with [build-taste](https://github.com/anishfn/build-taste) by Anish. Interface reviews use the [better-* skills](https://github.com/jakubkrehel/skills) by Jakub Krehel.
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE). The bundled skills in `.claude/skills/` keep their own MIT licenses.

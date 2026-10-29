@@ -11,7 +11,7 @@ make dry-run    # check config, weather and feeds without the model
 make run        # print a full issue
 ```
 
-You need Python 3.10+, Node 20.19+ and either [Ollama](https://ollama.com) or an API key for an OpenAI-compatible provider.
+You need Python 3.12+, Node 20.19+ and either [Ollama](https://ollama.com) or an API key for an OpenAI-compatible provider.
 
 ## How the code is laid out
 
