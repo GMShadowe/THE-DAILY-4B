@@ -3,9 +3,9 @@ import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   ArrowLeft, ArrowRight, Atom, Bot, BrainCircuit, Cable, Check, Cloud, Copy, Cpu, FlaskConical, GraduationCap,
-  Info, Leaf, Loader2, MapPin, Newspaper, PenLine, Plus, RefreshCw, Rocket, Search, Smartphone, Sparkles, Terminal,
+  Info, Leaf, Loader2, MapPin, PenLine, Plus, RefreshCw, Rocket, Search, Smartphone, Terminal,
 } from 'lucide-react'
-import { labelClass } from '../lib/categories'
+import { categories, getCategory, labelClass, sortSections } from '../lib/categories'
 
 const steps = ['Location', 'Model', 'Sources']
 const inputClass =
@@ -14,6 +14,8 @@ const primaryButton =
   'inline-flex items-center gap-1.5 rounded-lg bg-fg px-6 py-3 text-[15px] font-semibold text-surface transition-[opacity,scale] duration-150 ease-out hover:opacity-90 disabled:opacity-30 motion-safe:enabled:active:scale-[0.96]'
 const selectedRing = 'border-fg shadow-[inset_0_0_0_1px_var(--color-fg)]'
 
+const feedSections = Object.keys(categories).filter((key) => key !== 'local' && key !== 'country')
+
 const feedIcons = {
   'Hacker News': Terminal,
   TechCrunch: Rocket,
@@ -21,7 +23,6 @@ const feedIcons = {
   'Ars Technica': Cpu,
   'MIT Technology Review': GraduationCap,
   Wired: Cable,
-  'Anthropic News': Sparkles,
   'OpenAI Blog': Bot,
   'Google AI Blog': BrainCircuit,
   'Simon Willison': PenLine,
@@ -446,9 +447,9 @@ function ModelStep({ form, update }) {
   )
 }
 
-function AddSource({ onAdd }) {
+function AddSource({ onAdd, sections }) {
   const [url, setUrl] = useState('')
-  const [group, setGroup] = useState('tech')
+  const [group, setGroup] = useState(sections.includes('tech') ? 'tech' : sections[0])
   const [state, setState] = useState({ busy: false, error: '' })
   const urlId = useId()
   const errorId = useId()
@@ -504,8 +505,11 @@ function AddSource({ onAdd }) {
           aria-label="Section"
           className={`${inputClass} sm:w-auto`}
         >
-          <option value="tech">Technology &amp; AI</option>
-          <option value="science">Science</option>
+          {sections.map((key) => (
+            <option key={key} value={key}>
+              {getCategory(key).label}
+            </option>
+          ))}
         </select>
         <button type="submit" aria-disabled={state.busy || undefined} className={`${primaryButton} justify-center`}>
           {state.busy ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
@@ -524,10 +528,8 @@ function AddSource({ onAdd }) {
 function SourcesStep({ form, update, catalog, onAdd }) {
   const rangeId = useId()
   const rangeHintId = useId()
-  const groups = [
-    ['Technology & AI', catalog.tech_feeds],
-    ['Science', catalog.science_feeds],
-  ]
+  const groups = sortSections(Object.keys(catalog)).map((key) => [key, getCategory(key).label, catalog[key]])
+  const sections = sortSections([...new Set([...feedSections, ...Object.keys(catalog)])])
 
   function toggle(urls, on) {
     const next = new Set(form.feeds)
@@ -545,11 +547,12 @@ function SourcesStep({ form, update, catalog, onAdd }) {
         description="Pick the sources we read every morning. Local and national news come from your city."
       />
 
-      {groups.map(([label, feeds]) => {
+      {groups.map(([key, label, feeds]) => {
         if (!feeds.length) return null
         const allOn = feeds.every((f) => form.feeds.has(f.url))
+        const SectionIcon = getCategory(key).icon
         return (
-          <div key={label} className="mt-8">
+          <div key={key} className="mt-8">
             <div className="mb-4 flex items-baseline justify-between">
               <h2 className="text-xl font-semibold tracking-[-0.01em]">{label}</h2>
               <button
@@ -558,12 +561,13 @@ function SourcesStep({ form, update, catalog, onAdd }) {
                 className="text-[15px] font-medium underline underline-offset-4"
               >
                 {allOn ? 'Clear all' : 'Select all'}
+                <span className="sr-only"> {label}</span>
               </button>
             </div>
             <div className="flex flex-wrap gap-2.5 p-px">
               {feeds.map((f) => {
                 const on = form.feeds.has(f.url)
-                const Icon = feedIcons[f.name] || Newspaper
+                const Icon = feedIcons[f.name] || SectionIcon
                 return (
                   <button
                     key={f.url}
@@ -584,7 +588,7 @@ function SourcesStep({ form, update, catalog, onAdd }) {
         )
       })}
 
-      <AddSource onAdd={onAdd} />
+      <AddSource onAdd={onAdd} sections={sections} />
 
       <div className="mt-9">
         <div className="mb-3 flex items-baseline justify-between">
@@ -674,7 +678,7 @@ export default function Onboarding() {
   const [status, setStatus] = useState('loading')
   const [step, setStep] = useState(0)
   const [form, setForm] = useState(null)
-  const [catalog, setCatalog] = useState({ tech_feeds: [], science_feeds: [] })
+  const [catalog, setCatalog] = useState({})
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -695,7 +699,7 @@ export default function Onboarding() {
           api_model: config.api_model || '',
           api_key: '',
           api_key_set,
-          feeds: new Set([...(config.tech_feeds || []), ...(config.science_feeds || [])].map((f) => f.url)),
+          feeds: new Set(Object.values(config.feeds || {}).flat().map((f) => f.url)),
           custom: [],
         })
         setStatus('ready')
@@ -704,8 +708,10 @@ export default function Onboarding() {
   }, [])
 
   function addFeed(feed, group) {
-    const key = group === 'science' ? 'science_feeds' : 'tech_feeds'
-    setCatalog((c) => ({ ...c, [key]: c[key].some((f) => f.url === feed.url) ? c[key] : [...c[key], feed] }))
+    setCatalog((c) => {
+      const list = c[group] || []
+      return { ...c, [group]: list.some((f) => f.url === feed.url) ? list : [...list, feed] }
+    })
     setForm((f) => ({
       ...f,
       feeds: new Set([...f.feeds, feed.url]),
@@ -728,8 +734,12 @@ export default function Onboarding() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...rest,
-          tech_feeds: catalog.tech_feeds.filter((f) => feeds.has(f.url)).map((f) => f.url),
-          science_feeds: catalog.science_feeds.filter((f) => feeds.has(f.url)).map((f) => f.url),
+          feeds: Object.fromEntries(
+            Object.entries(catalog).map(([section, list]) => [
+              section,
+              list.filter((f) => feeds.has(f.url)).map((f) => f.url),
+            ]),
+          ),
           custom_feeds: custom.filter((f) => feeds.has(f.url)),
         }),
       })
@@ -765,7 +775,7 @@ export default function Onboarding() {
     )
   }
 
-  const allFeeds = catalog.tech_feeds.length + catalog.science_feeds.length
+  const allFeeds = Object.values(catalog).flat().length
   const status_ = [
     form.city.trim() ? [form.city.trim(), form.country.trim()].filter(Boolean).join(', ') : 'Choose your city',
     (form.provider === 'openai' ? form.api_model : form.ollama_model).trim() || 'Choose a model',
