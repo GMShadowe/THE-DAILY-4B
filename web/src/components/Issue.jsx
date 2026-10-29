@@ -4,7 +4,7 @@ import BentoTile from './BentoTile'
 import WeatherTile from './WeatherTile'
 import DigestTile from './DigestTile'
 import DetailModal from './DetailModal'
-import { categories, gridClass, labelClass } from '../lib/categories'
+import { getCategory, gridClass, labelClass, sortSections } from '../lib/categories'
 import { pack, placement, tileSize, useColumns } from '../lib/grid'
 
 function interleave(list) {
@@ -71,7 +71,7 @@ export default function Issue({ issue, archived = false }) {
 
   const sections = [
     ['all', 'All stories', articles.length],
-    ...Object.entries(categories).filter(([key]) => counts[key]).map(([key, meta]) => [key, meta.label, counts[key]]),
+    ...sortSections(Object.keys(counts)).map((key) => [key, getCategory(key).label, counts[key]]),
   ]
   const visible = useMemo(
     () => (filter === 'all' ? articles : articles.filter((a) => a.category === filter)),

@@ -1,16 +1,28 @@
-import { Cpu, FlaskConical, Landmark, MapPin, Newspaper } from 'lucide-react'
+import {
+  Briefcase, Cpu, FlaskConical, Globe, HeartPulse, Landmark, Leaf, MapPin, Newspaper, Palette, Trophy,
+} from 'lucide-react'
 
 export const categories = {
+  world: { label: 'World', icon: Globe },
+  country: { label: 'National', icon: Landmark },
+  local: { label: 'Local', icon: MapPin },
+  business: { label: 'Business', icon: Briefcase },
   tech: { label: 'Technology', icon: Cpu },
   science: { label: 'Science', icon: FlaskConical },
-  local: { label: 'Local', icon: MapPin },
-  country: { label: 'National', icon: Landmark },
+  health: { label: 'Health', icon: HeartPulse },
+  climate: { label: 'Climate', icon: Leaf },
+  culture: { label: 'Culture', icon: Palette },
+  sports: { label: 'Sports', icon: Trophy },
 }
 
-const fallback = { label: 'News', icon: Newspaper }
+export function getCategory(key = 'news') {
+  return categories[key] || { label: key.charAt(0).toUpperCase() + key.slice(1), icon: Newspaper }
+}
 
-export function getCategory(key) {
-  return categories[key] || fallback
+export function sortSections(keys) {
+  const order = Object.keys(categories)
+  const rank = (key) => (order.includes(key) ? order.indexOf(key) : order.length)
+  return [...keys].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b))
 }
 
 export const gridClass =
