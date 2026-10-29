@@ -2,13 +2,13 @@
 
 *All the news a 4B model sees fit to print.*
 
-A self-hosted morning newspaper. Before you wake up, it reads the tech blogs, AI labs, science journals and the biggest news from your city and country, has a small language model keep only what matters, and prints it as a newsprint-style bento page you can read over coffee.
+A self-hosted morning newspaper. Before you wake up, it reads world, business, tech, science, health, climate, culture and sports news, plus the biggest stories from your city and country, has a small language model keep only what matters, and prints it as a newsprint-style bento page you can read over coffee.
 
 ![The Daily 4B front page](docs/screenshot.jpg)
 
 - **Runs on a 4B model.** Curation works well on a small local model through [Ollama](https://ollama.com). No GPU? Bring a key for OpenAI, OpenRouter, Groq or any OpenAI-compatible API.
 - **Read it without clicking through.** Every story gets a 60–90 word summary, and the front page opens with a short brief of the whole day.
-- **Your morning, your sources.** Pick from the built-in feeds or add any RSS feed, plus Google News for your city and country.
+- **Your morning, your sections.** Eight sections out of the box, each with hand-checked feeds. Turn any of them off, add any RSS feed, or invent a section of your own. Google News covers your city and country.
 - **Nothing runs all day.** Run it once each morning (cron, launchd, Task Scheduler or by hand). The site just reads the JSON it leaves behind.
 - **Keeps an archive.** Yesterday's paper moves to the archive, and stories that already ran in the last three issues are skipped.
 
@@ -122,8 +122,8 @@ Settings can only be changed from the machine running the server. On a server or
 | `provider` | `ollama` | or `openai` for any OpenAI-compatible API |
 | `ollama_host`, `ollama_model` | `http://localhost:11434`, `qwen3.5:4b` | |
 | `api_base_url`, `api_model` | `https://api.openai.com/v1`, none | Used when `provider: openai` |
-| `max_articles` | `18` | Stories per issue (6–30) |
-| `tech_feeds`, `science_feeds` | see `config.example.yaml` | Lists of `{name, url}` |
+| `max_articles` | `24` | Stories per issue (6–30) |
+| `feeds` | see `config.example.yaml` | Sections, each a list of `{name, url}`. Any section name works, such as `gaming:` |
 
 | Environment variable | |
 | --- | --- |

@@ -37,4 +37,4 @@ You need Python 3.12+, Node 20.19+ and either [Ollama](https://ollama.com) or an
 
 ## Adding a default feed
 
-Add it to `config.example.yaml` under `tech_feeds` or `science_feeds`. Check it with `make dry-run` first: some sites block unknown user agents or move their feeds.
+Add it to `config.example.yaml` under the right section in `feeds`. A new section also needs a label and icon in `web/src/lib/categories.js`. Check it with `make dry-run` first: some sites block unknown user agents or move their feeds.
