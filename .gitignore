@@ -12,3 +12,8 @@ data/
 .env
 
 .pytest_cache/
+
+AGENTS.md
+CLAUDE.local.md
+.claude/settings.local.json
+.claude/skills/taste/board/images/
